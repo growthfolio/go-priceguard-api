@@ -70,7 +70,7 @@ func (g *GoogleOAuthService) ExchangeCodeForToken(ctx context.Context, code stri
 // GetUserInfo retrieves user information from Google using the access token
 func (g *GoogleOAuthService) GetUserInfo(ctx context.Context, token *oauth2.Token) (*GoogleUser, error) {
 	client := g.config.Client(ctx, token)
-	
+
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user info: %w", err)
@@ -99,7 +99,7 @@ func (g *GoogleOAuthService) ValidateIDToken(ctx context.Context, idToken string
 	// For production, you should use Google's ID token verification library
 	// For now, we'll make a request to Google's tokeninfo endpoint
 	url := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?id_token=%s", idToken)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/config"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // Manager coordinates all database connections
@@ -114,4 +115,14 @@ func (m *Manager) IsHealthy(ctx context.Context) bool {
 	}
 
 	return true
+}
+
+// GetDB returns the GORM database instance for PostgreSQL
+func (m *Manager) GetDB() *gorm.DB {
+	return m.Postgres.db
+}
+
+// GetRedis returns the Redis client
+func (m *Manager) GetRedis() *RedisClient {
+	return m.Redis
 }

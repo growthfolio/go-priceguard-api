@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	httphandler "github.com/felipe-macedo/go-priceguard-api/internal/adapters/http"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/config"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/database"
 	"github.com/gin-gonic/gin"
@@ -74,6 +75,14 @@ func main() {
 			"environment": cfg.App.Environment,
 		})
 	})
+
+	// Setup API routes
+	routerDeps := &httphandler.RouterDependencies{
+		Config:    cfg,
+		Logger:    logger,
+		DBManager: dbManager,
+	}
+	httphandler.SetupRoutes(router, routerDeps)
 
 	// Create HTTP server
 	server := &http.Server{
