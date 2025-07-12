@@ -48,7 +48,7 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		// Check database health
 		dbHealth := dbManager.HealthCheck(c.Request.Context())
-		
+
 		response := gin.H{
 			"status":    "ok",
 			"timestamp": time.Now().Unix(),

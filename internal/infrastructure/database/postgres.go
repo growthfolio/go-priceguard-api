@@ -31,7 +31,7 @@ func NewPostgresClient(cfg *config.Config, log *logrus.Logger) (*PostgresClient,
 
 	// Open database connection
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger:                 gormLogger,
+		Logger:                                   gormLogger,
 		DisableForeignKeyConstraintWhenMigrating: false,
 	})
 	if err != nil {
@@ -125,11 +125,11 @@ func (p *PostgresClient) Stats() map[string]interface{} {
 	return map[string]interface{}{
 		"max_open_connections": stats.MaxOpenConnections,
 		"open_connections":     stats.OpenConnections,
-		"in_use":              stats.InUse,
-		"idle":                stats.Idle,
-		"wait_count":          stats.WaitCount,
-		"wait_duration":       stats.WaitDuration.String(),
-		"max_idle_closed":     stats.MaxIdleClosed,
+		"in_use":               stats.InUse,
+		"idle":                 stats.Idle,
+		"wait_count":           stats.WaitCount,
+		"wait_duration":        stats.WaitDuration.String(),
+		"max_idle_closed":      stats.MaxIdleClosed,
 		"max_idle_time_closed": stats.MaxIdleTimeClosed,
 		"max_lifetime_closed":  stats.MaxLifetimeClosed,
 	}

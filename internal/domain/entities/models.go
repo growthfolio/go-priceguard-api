@@ -2,7 +2,7 @@ package entities
 
 import (
 	"time"
-	
+
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
@@ -19,10 +19,10 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at" gorm:"default:CURRENT_TIMESTAMP"`
 
 	// Relationships
-	Settings      *UserSettings   `json:"settings,omitempty" gorm:"foreignKey:UserID"`
-	Alerts        []Alert         `json:"alerts,omitempty" gorm:"foreignKey:UserID"`
-	Notifications []Notification  `json:"notifications,omitempty" gorm:"foreignKey:UserID"`
-	Sessions      []Session       `json:"sessions,omitempty" gorm:"foreignKey:UserID"`
+	Settings      *UserSettings  `json:"settings,omitempty" gorm:"foreignKey:UserID"`
+	Alerts        []Alert        `json:"alerts,omitempty" gorm:"foreignKey:UserID"`
+	Notifications []Notification `json:"notifications,omitempty" gorm:"foreignKey:UserID"`
+	Sessions      []Session      `json:"sessions,omitempty" gorm:"foreignKey:UserID"`
 }
 
 // UserSettings represents user preferences and settings
@@ -66,7 +66,7 @@ type Alert struct {
 	ID            uuid.UUID      `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
 	UserID        uuid.UUID      `json:"user_id" gorm:"type:uuid;not null;index"`
 	Symbol        string         `json:"symbol" gorm:"not null;index"`
-	AlertType     string         `json:"alert_type" gorm:"not null"` // 'price', 'rsi', 'ema_cross', etc.
+	AlertType     string         `json:"alert_type" gorm:"not null"`     // 'price', 'rsi', 'ema_cross', etc.
 	ConditionType string         `json:"condition_type" gorm:"not null"` // 'above', 'below', 'crosses'
 	TargetValue   float64        `json:"target_value" gorm:"type:decimal(20,8);not null"`
 	Timeframe     string         `json:"timeframe" gorm:"not null"`
@@ -144,39 +144,39 @@ type RawCryptoData struct {
 		ImageURL   string `json:"imgurl"`
 		Active     bool   `json:"active"`
 	} `json:"dashboardData"`
-	
+
 	// Price changes
 	PriceChange1m  string `json:"priceChange_1m"`
 	PriceChange5m  string `json:"priceChange_5m"`
 	PriceChange15m string `json:"priceChange_15m"`
 	PriceChange1h  string `json:"priceChange_1h"`
 	PriceChange1d  string `json:"priceChange_1d"`
-	
+
 	// Pullback entries
 	PullbackEntry5m  *string `json:"pullbackEntry_5m"`
 	PullbackEntry15m *string `json:"pullbackEntry_15m"`
 	PullbackEntry1h  *string `json:"pullbackEntry_1h"`
 	PullbackEntry4h  *string `json:"pullbackEntry_4h"`
 	PullbackEntry1d  *string `json:"pullbackEntry_1d"`
-	
+
 	// SuperTrend
 	SuperTrend4h5m  *string `json:"superTrend4h_5m"`
 	SuperTrend4h15m *string `json:"superTrend4h_15m"`
 	SuperTrend4h1h  *string `json:"superTrend4h_1h"`
-	
+
 	// True Range
 	TrueRange1m  string `json:"trueRange_1m"`
 	TrueRange5m  string `json:"trueRange_5m"`
 	TrueRange15m string `json:"trueRange_15m"`
 	TrueRange1h  string `json:"trueRange_1h"`
-	
+
 	// RSI (formato especial: "45.32<[50]")
 	RSI5m  string `json:"rsi_5m"`
 	RSI15m string `json:"rsi_15m"`
 	RSI1h  string `json:"rsi_1h"`
 	RSI4h  string `json:"rsi_4h"`
 	RSI1d  string `json:"rsi_1d"`
-	
+
 	// EMA Trends
 	EMATrend15m string `json:"ematrend_15m"`
 	EMATrend1h  string `json:"ematrend_1h"`
