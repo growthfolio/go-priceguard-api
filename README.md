@@ -1,146 +1,114 @@
-# PriceGuard API Backend
+# 🛡️ PriceGuard API
 
-Backend em Go para a aplicação PriceGuard - Monitor de preços de criptomoedas em tempo real.
+Sistema avançado de monitoramento de criptomoedas em tempo real com alertas inteligentes e análise técnica.
 
-## 📋 Sobre o Projeto
+[![Go Version](https://img.shields.io/badge/Go-1.21+-blue.svg)](https://golang.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![API Status](https://img.shields.io/badge/API-Active%20Development-orange.svg)]()
 
-O PriceGuard é uma aplicação de monitoramento de criptomoedas que fornece:
+## 🚀 Visão Geral
 
-- ⚡ Dados em tempo real via WebSocket
-- 📊 Indicadores técnicos (RSI, EMA, SuperTrend, etc.)
-- 🔔 Sistema de alertas personalizáveis
-- 🔐 Autenticação via Google OAuth
-- 📈 Histórico de preços e análises
-- 🎛️ Dashboard interativo
+O PriceGuard é uma API REST robusta construída em Go que oferece:
 
-## 🚀 Status do Desenvolvimento
+- **💡 Alertas Inteligentes**: Sistema avançado com múltiplas condições (preço, RSI, percentual, cruzamento de médias)
+- **⚡ Real-time**: WebSocket com broadcasting automático de alertas e notificações
+- **📊 Análise Técnica**: Indicadores completos (RSI, EMA, SuperTrend, MACD, Bollinger)
+- **🔔 Notificações**: Sistema assíncrono com fila Redis e retry automático
+- **🔐 Autenticação**: Google OAuth 2.0 + JWT com refresh tokens
+- **🏗️ Clean Architecture**: Estrutura modular e escalável
 
-Este projeto está em desenvolvimento ativo. Consulte o [DEVELOPMENT_CHECKLIST.md](./DEVELOPMENT_CHECKLIST.md) para acompanhar o progresso.
+## 📈 Status do Projeto
 
-**Fase Atual**: Estrutura Inicial e Configuração
+**Fase Atual**: 8/15 ✅ **Sistema de Alertas Implementado**
 
-## 🏗️ Arquitetura
+| Fase | Status | Descrição |
+|------|--------|-----------|
+| 1-3 | ✅ | Estrutura inicial e modelagem |
+| 4 | ✅ | Autenticação JWT + Google OAuth |
+| 5 | ✅ | APIs REST Core |
+| 6 | ✅ | Integração Binance + Indicadores |
+| 7 | ✅ | WebSocket Real-time |
+| **8** | ✅ | **Sistema de Alertas Avançado** |
+| 9 | 🚧 | Middleware e Segurança |
+| 10-15 | ⏳ | Monitoramento, Testes, Deploy |
 
-O backend segue os princípios de Clean Architecture com as seguintes camadas:
+> 📋 [Ver progresso detalhado](./DEVELOPMENT_CHECKLIST.md)
 
-```
-📁 cmd/server/          # Ponto de entrada
-📁 internal/
-  📁 adapters/          # Adaptadores (HTTP, WebSocket, Repository)
-  📁 application/       # Casos de uso e serviços de aplicação
-  📁 domain/           # Entidades e regras de negócio
-  📁 infrastructure/   # Infraestrutura externa (DB, APIs)
-📁 pkg/                # Pacotes utilitários
-📁 docs/               # Documentação
-```
+## 🛠️ Stack Tecnológica
 
-## 🛠️ Tecnologias
+| Categoria | Tecnologia |
+|-----------|------------|
+| **Backend** | Go 1.21+, Gin Framework |
+| **Database** | PostgreSQL, Redis |
+| **Real-time** | WebSocket (Gorilla) |
+| **APIs** | Binance API, Google OAuth |
+| **DevOps** | Docker, Air (hot reload) |
 
-- **Linguagem**: Go 1.21+
-- **Framework HTTP**: Gin
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **WebSocket**: Gorilla WebSocket
-- **Autenticação**: JWT + Google OAuth 2.0
-- **APIs Externas**: Binance API
-- **Containerização**: Docker
+## ⚡ Quick Start
 
-## 📋 Funcionalidades Principais
-
-### APIs REST
-- ✅ Autenticação e autorização
-- ✅ Gestão de perfil de usuário
-- ✅ Dados de criptomoedas
-- ✅ Sistema de alertas
-- ✅ Notificações
-
-### WebSocket Real-time
-- ✅ Atualizações de preços em tempo real
-- ✅ Indicadores técnicos ao vivo
-- ✅ Alertas instantâneos
-- ✅ Sistema de subscrições
-
-### Indicadores Técnicos
-- RSI (Relative Strength Index)
-- EMA (Exponential Moving Average)
-- SuperTrend
-- True Range
-- Pullback Entry Signals
-
-## 🚀 Desenvolvimento Local
-
-### Pré-requisitos
-
-- Go 1.21+
-- PostgreSQL 14+
-- Redis 6+
-- Docker (opcional)
-
-### Configuração
-
-1. Clone o repositório:
 ```bash
-git clone <repo-url>
+# 1. Clone o repositório
+git clone https://github.com/growthfolio/go-priceguard-api.git
 cd go-priceguard-api
-```
 
-2. Configure as variáveis de ambiente:
-```bash
+# 2. Configure ambiente
 cp .env.example .env
-# Edite o arquivo .env com suas configurações
-```
+# Edite .env com suas configurações
 
-3. Execute as migrações do banco:
-```bash
-make migrate-up
-```
+# 3. Execute com Docker
+make docker-up
 
-4. Execute a aplicação:
-```bash
+# Ou execute localmente
 make run
 ```
 
-### Comandos Disponíveis
+## 🏗️ Arquitetura
 
-```bash
-make run          # Executar aplicação
-make build        # Build da aplicação
-make test         # Executar testes
-make test-cover   # Testes com coverage
-make lint         # Linter
-make docker-up    # Subir containers
-make docker-down  # Parar containers
+```
+📁 cmd/server/          # Entry point
+📁 internal/
+  📁 adapters/          # HTTP, WebSocket, Repository
+  📁 application/       # Services (AlertEngine, NotificationService)
+  📁 domain/           # Entities (User, Alert, Notification)
+  📁 infrastructure/   # Database, External APIs
+📁 pkg/                # Utilities (Indicators)
 ```
 
-## 📡 Endpoints da API
+## 🔗 API Endpoints
+
+<details>
+<summary><strong>📡 Principais Endpoints</strong></summary>
 
 ### Autenticação
-- `POST /auth/login` - Login via Google OAuth
-- `POST /auth/logout` - Logout
-- `GET /auth/verify` - Verificar token
-
-### Usuário
-- `GET /api/user/profile` - Perfil do usuário
-- `PUT /api/user/profile` - Atualizar perfil
-- `GET /api/user/settings` - Configurações
-- `PUT /api/user/settings` - Atualizar configurações
-
-### Criptomoedas
-- `GET /api/crypto/data` - Lista de criptomoedas
-- `GET /api/crypto/detail/:symbol` - Detalhes específicos
-- `GET /api/crypto/history/:symbol` - Histórico
-- `GET /api/crypto/indicators/:symbol` - Indicadores
+- `POST /auth/login` - Login Google OAuth
+- `POST /auth/refresh` - Refresh token
 
 ### Alertas
 - `GET /api/alerts` - Listar alertas
 - `POST /api/alerts` - Criar alerta
-- `PUT /api/alerts/:id` - Atualizar alerta
-- `DELETE /api/alerts/:id` - Excluir alerta
+- `GET /api/alerts/types` - Tipos disponíveis
+- `GET /api/alerts/stats` - Estatísticas
+
+### Notificações  
+- `GET /api/notifications` - Listar notificações
+- `POST /api/notifications/mark-all-read` - Marcar como lidas
+- `GET /api/notifications/stats` - Estatísticas
+
+### Dados Crypto
+- `GET /api/crypto/data` - Lista de moedas
+- `GET /api/crypto/history/:symbol` - Histórico de preços
+- `GET /api/crypto/indicators/:symbol` - Indicadores técnicos
 
 ### WebSocket
-- `WS /ws/dashboard` - Conexão para dados em tempo real
+- `WS /ws` - Conexão real-time
+  - Events: `alert_triggered`, `notification_update`, `crypto_data_update`
 
-## 🔧 Variáveis de Ambiente
+</details>
+
+## 🔧 Configuração
+
+<details>
+<summary><strong>⚙️ Variáveis de Ambiente</strong></summary>
 
 ```env
 # Servidor
@@ -149,64 +117,60 @@ GIN_MODE=debug
 
 # Database
 DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=password
 DB_NAME=priceguard
+DB_USER=postgres
+DB_PASSWORD=your_password
 
 # Redis
 REDIS_HOST=localhost
 REDIS_PORT=6379
-REDIS_PASSWORD=
 
 # JWT
-JWT_SECRET=your_jwt_secret
+JWT_SECRET=your_super_secret_key
 JWT_EXPIRATION=24h
 
 # Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CLIENT_ID=your_client_id
+GOOGLE_CLIENT_SECRET=your_client_secret
 
 # Binance API
-BINANCE_API_KEY=your_binance_api_key
-BINANCE_API_SECRET=your_binance_api_secret
+BINANCE_API_KEY=your_api_key
+BINANCE_API_SECRET=your_api_secret
 ```
 
-## 🧪 Testes
+</details>
+
+## 🧪 Comandos
 
 ```bash
-# Executar todos os testes
-make test
-
-# Testes com coverage
-make test-cover
-
-# Testes específicos
-go test ./internal/...
+make run          # Executar aplicação
+make build        # Build da aplicação  
+make test         # Executar testes
+make docker-up    # Docker compose up
+make docker-down  # Docker compose down
+make migrate-up   # Executar migrações
 ```
 
 ## 📚 Documentação
 
-- [Especificação do Backend](./docs/BACKEND_SPECIFICATION.md)
-- [Checklist de Desenvolvimento](./DEVELOPMENT_CHECKLIST.md)
-- [Documentação da API](./docs/api/) (Swagger)
+- 📖 [Especificação Técnica](./docs/BACKEND_SPECIFICATION.md)
+- ✅ [Checklist de Desenvolvimento](./DEVELOPMENT_CHECKLIST.md)
+- 🔗 [Swagger API Docs](http://localhost:8080/swagger/index.html)
 
-## 🤝 Contribuição
+## 🤝 Contribuindo
 
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -am 'Adiciona nova feature'`)
+1. Fork o projeto
+2. Crie uma branch (`git checkout -b feature/nova-feature`)
+3. Commit suas mudanças (`git commit -m 'feat: adiciona nova feature'`)
 4. Push para a branch (`git push origin feature/nova-feature`)
 5. Abra um Pull Request
 
-## 📄 Licença
+## 👨‍💻 Desenvolvimento
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 📞 Contato
-
-Para dúvidas ou sugestões, entre em contato com a equipe de desenvolvimento.
+**Desenvolvido por**: Felipe Macedo / GitHub Copilot  
+**Repositório**: [github.com/growthfolio/go-priceguard-api](https://github.com/growthfolio/go-priceguard-api)  
+**Licença**: MIT
 
 ---
 
-⭐ **Desenvolvido com Go e ❤️**
+⭐ **Se este projeto foi útil, considere dar uma estrela!**
