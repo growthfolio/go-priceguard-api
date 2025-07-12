@@ -53,11 +53,11 @@ type CacheStats struct {
 
 // MemoryCache cache em memória local
 type MemoryCache struct {
-	data       map[string]*CacheItem
-	mutex      sync.RWMutex
-	maxSize    int
-	stats      CacheStats
-	janitor    *janitor
+	data        map[string]*CacheItem
+	mutex       sync.RWMutex
+	maxSize     int
+	stats       CacheStats
+	janitor     *janitor
 	stopJanitor chan bool
 }
 
@@ -127,7 +127,7 @@ func (mc *MemoryCache) Get(key string) (interface{}, bool) {
 	item.AccessedAt = time.Now()
 	item.HitCount++
 	mc.stats.Hits++
-	
+
 	// Calcular hit ratio
 	totalAccess := mc.stats.Hits + mc.stats.Misses
 	if totalAccess > 0 {
@@ -214,11 +214,11 @@ func (j *janitor) run(mc *MemoryCache) {
 
 // LayeredCache implementa cache em camadas (L1: Memory, L2: Redis)
 type LayeredCache struct {
-	l1Cache   *MemoryCache
-	l2Cache   *redis.Client
-	strategy  CacheStrategy
-	logger    *logrus.Logger
-	metrics   *CacheMetrics
+	l1Cache  *MemoryCache
+	l2Cache  *redis.Client
+	strategy CacheStrategy
+	logger   *logrus.Logger
+	metrics  *CacheMetrics
 }
 
 // CacheMetrics métricas detalhadas do cache
@@ -229,9 +229,9 @@ type CacheMetrics struct {
 }
 
 // NewLayeredCache cria novo cache em camadas
-func NewLayeredCache(l1MaxSize int, l1CleanupInterval time.Duration, 
+func NewLayeredCache(l1MaxSize int, l1CleanupInterval time.Duration,
 	redisClient *redis.Client, strategy CacheStrategy, logger *logrus.Logger) *LayeredCache {
-	
+
 	return &LayeredCache{
 		l1Cache:  NewMemoryCache(l1MaxSize, l1CleanupInterval),
 		l2Cache:  redisClient,
@@ -319,7 +319,7 @@ func (lc *LayeredCache) Get(ctx context.Context, key string, target interface{})
 func (lc *LayeredCache) Delete(ctx context.Context, key string) error {
 	// Remover do L1
 	_ = lc.l1Cache.Delete(key)
-	
+
 	// Remover do L2
 	if err := lc.l2Cache.Del(ctx, key).Err(); err != nil {
 		return fmt.Errorf("failed to delete from L2 cache: %w", err)
@@ -334,7 +334,7 @@ func (lc *LayeredCache) Delete(ctx context.Context, key string) error {
 func (lc *LayeredCache) GetMetrics() CacheMetrics {
 	lc.metrics.mutex.RLock()
 	defer lc.metrics.mutex.RUnlock()
-	
+
 	return CacheMetrics{
 		L1Stats: lc.l1Cache.GetStats(),
 		L2Stats: lc.metrics.L2Stats,
@@ -391,12 +391,12 @@ func (lc *LayeredCache) copyValue(src, dst interface{}) error {
 
 // CacheWarmer aquece o cache com dados frequentemente acessados
 type CacheWarmer struct {
-	cache      *LayeredCache
-	warmupFns  map[string]func(ctx context.Context) error
-	interval   time.Duration
-	batchSize  int
-	logger     *logrus.Logger
-	stopChan   chan bool
+	cache     *LayeredCache
+	warmupFns map[string]func(ctx context.Context) error
+	interval  time.Duration
+	batchSize int
+	logger    *logrus.Logger
+	stopChan  chan bool
 }
 
 // NewCacheWarmer cria novo cache warmer

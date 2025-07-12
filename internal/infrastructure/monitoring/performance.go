@@ -13,16 +13,16 @@ import (
 
 // PerformanceMonitor monitora métricas de performance
 type PerformanceMonitor struct {
-	logger         *logrus.Logger
-	collectors     []MetricCollector
-	httpMetrics    *HTTPMetrics
-	dbMetrics      *DatabaseMetrics
-	cacheMetrics   *CacheMetrics
-	systemMetrics  *SystemMetrics
-	wsMetrics      *WebSocketMetrics
-	alertMetrics   *AlertEngineMetrics
-	stopChan       chan bool
-	wg             sync.WaitGroup
+	logger        *logrus.Logger
+	collectors    []MetricCollector
+	httpMetrics   *HTTPMetrics
+	dbMetrics     *DatabaseMetrics
+	cacheMetrics  *CacheMetrics
+	systemMetrics *SystemMetrics
+	wsMetrics     *WebSocketMetrics
+	alertMetrics  *AlertEngineMetrics
+	stopChan      chan bool
+	wg            sync.WaitGroup
 }
 
 // MetricCollector interface para coletores de métricas
@@ -42,25 +42,25 @@ type HTTPMetrics struct {
 
 // DatabaseMetrics métricas de banco de dados
 type DatabaseMetrics struct {
-	QueriesTotal       prometheus.CounterVec
-	QueryDuration      prometheus.HistogramVec
-	ConnectionsActive  prometheus.Gauge
-	ConnectionsIdle    prometheus.Gauge
-	ConnectionsMax     prometheus.Gauge
-	TransactionsTotal  prometheus.CounterVec
-	SlowQueriesTotal   prometheus.Counter
+	QueriesTotal      prometheus.CounterVec
+	QueryDuration     prometheus.HistogramVec
+	ConnectionsActive prometheus.Gauge
+	ConnectionsIdle   prometheus.Gauge
+	ConnectionsMax    prometheus.Gauge
+	TransactionsTotal prometheus.CounterVec
+	SlowQueriesTotal  prometheus.Counter
 }
 
 // CacheMetrics métricas de cache
 type CacheMetrics struct {
-	HitsTotal        prometheus.CounterVec
-	MissesTotal      prometheus.CounterVec
-	SetsTotal        prometheus.CounterVec
-	DeletesTotal     prometheus.CounterVec
-	EvictionsTotal   prometheus.CounterVec
-	HitRatio         prometheus.GaugeVec
-	Size             prometheus.GaugeVec
-	AccessDuration   prometheus.HistogramVec
+	HitsTotal      prometheus.CounterVec
+	MissesTotal    prometheus.CounterVec
+	SetsTotal      prometheus.CounterVec
+	DeletesTotal   prometheus.CounterVec
+	EvictionsTotal prometheus.CounterVec
+	HitRatio       prometheus.GaugeVec
+	Size           prometheus.GaugeVec
+	AccessDuration prometheus.HistogramVec
 }
 
 // SystemMetrics métricas do sistema

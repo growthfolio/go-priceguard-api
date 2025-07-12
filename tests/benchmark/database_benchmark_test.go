@@ -105,7 +105,7 @@ func BenchmarkDatabaseOperations(b *testing.B) {
 					Enabled:       true,
 				}
 			}
-			
+
 			// Batch insert
 			err := db.CreateInBatches(alerts, 10).Error
 			require.NoError(b, err)
@@ -237,7 +237,7 @@ func setupBenchmarkDB(b *testing.B) *gorm.DB {
 
 func setupBenchmarkDBWithConfig(b *testing.B, maxOpen, maxIdle int, maxLifetime time.Duration) *gorm.DB {
 	dsn := "host=localhost user=postgres password=postgres dbname=priceguard_benchmark port=5432 sslmode=disable"
-	
+
 	config := &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent), // Silenciar logs para benchmark
 	}

@@ -46,14 +46,14 @@ func BenchmarkRedisOperations(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			pipe := client.Pipeline()
-			
+
 			// Adicionar múltiplas operações ao pipeline
 			for j := 0; j < 10; j++ {
 				key := fmt.Sprintf("pipe_key_%d_%d", i, j)
 				value := fmt.Sprintf("pipe_value_%d_%d", i, j)
 				pipe.Set(context.Background(), key, value, time.Hour)
 			}
-			
+
 			_, err := pipe.Exec(context.Background())
 			require.NoError(b, err)
 		}
@@ -87,7 +87,7 @@ func BenchmarkRedisOperations(b *testing.B) {
 
 	b.Run("ListOperations", func(b *testing.B) {
 		listKey := "benchmark_list"
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			value := fmt.Sprintf("list_item_%d", i)
@@ -98,7 +98,7 @@ func BenchmarkRedisOperations(b *testing.B) {
 
 	b.Run("HashOperations", func(b *testing.B) {
 		hashKey := "benchmark_hash"
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			field := fmt.Sprintf("field_%d", i)
@@ -155,13 +155,13 @@ func BenchmarkCacheStrategies(b *testing.B) {
 	// Cache de preços de crypto
 	b.Run("CryptoPriceCache", func(b *testing.B) {
 		symbols := []string{"BTCUSDT", "ETHUSDT", "ADAUSDT", "BNBUSDT", "SOLUSDT"}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			symbol := symbols[i%len(symbols)]
 			key := fmt.Sprintf("price:%s", symbol)
 			price := fmt.Sprintf("%.2f", float64(50000+i))
-			
+
 			// Set com TTL de 1 minuto (cache de preços)
 			err := client.Set(context.Background(), key, price, time.Minute).Err()
 			require.NoError(b, err)
@@ -173,7 +173,7 @@ func BenchmarkCacheStrategies(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			sessionID := fmt.Sprintf("session:%d", i)
 			userID := fmt.Sprintf("user-%d", i%1000)
-			
+
 			// Set com TTL de 24 horas (cache de sessão)
 			err := client.Set(context.Background(), sessionID, userID, 24*time.Hour).Err()
 			require.NoError(b, err)
@@ -185,7 +185,7 @@ func BenchmarkCacheStrategies(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			alertID := fmt.Sprintf("alert_result:%d", i)
 			result := fmt.Sprintf(`{"triggered": %t, "timestamp": %d}`, i%2 == 0, time.Now().Unix())
-			
+
 			// Set com TTL de 5 minutos (cache de resultado de alerta)
 			err := client.Set(context.Background(), alertID, result, 5*time.Minute).Err()
 			require.NoError(b, err)
@@ -207,7 +207,7 @@ func BenchmarkMemoryVsRedisCache(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			key := fmt.Sprintf("mem_key_%d", i)
 			value := fmt.Sprintf("mem_value_%d", i)
-			
+
 			memMutex.Lock()
 			memCache[key] = value
 			memMutex.Unlock()
@@ -225,7 +225,7 @@ func BenchmarkMemoryVsRedisCache(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			key := fmt.Sprintf("mem_read_key_%d", i%1000)
-			
+
 			memMutex.RLock()
 			_ = memCache[key]
 			memMutex.RUnlock()
@@ -237,7 +237,7 @@ func BenchmarkMemoryVsRedisCache(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			key := fmt.Sprintf("redis_key_%d", i)
 			value := fmt.Sprintf("redis_value_%d", i)
-			
+
 			err := client.Set(context.Background(), key, value, time.Hour).Err()
 			require.NoError(b, err)
 		}
