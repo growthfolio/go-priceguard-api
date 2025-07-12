@@ -1,0 +1,34 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: priceguard-api-pdb
+  namespace: priceguard
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: priceguard-api
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres-pdb
+  namespace: priceguard
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: postgres
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-pdb
+  namespace: priceguard
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: redis

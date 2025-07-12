@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: priceguard
+  labels:
+    name: priceguard
+    environment: production

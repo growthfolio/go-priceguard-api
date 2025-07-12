@@ -1,0 +1,134 @@
+groups:
+  - name: priceguard-alerts
+    rules:
+      # Application Health
+      - alert: PriceGuardAPIDown
+        expr: up{job="priceguard-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PriceGuard API is down"
+          description: "PriceGuard API has been down for more than 1 minute."
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="priceguard-api"}[5m])) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for more than 2 minutes."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="priceguard-api",status=~"5.."}[5m]) / rate(http_requests_total{job="priceguard-api"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for more than 5 minutes."
+
+      # Database
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL has been down for more than 1 minute."
+
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connection usage is {{ $value | humanizePercentage }}."
+
+      - alert: SlowQueries
+        expr: rate(pg_stat_user_tables_seq_scan[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of sequential scans"
+          description: "Sequential scans rate is {{ $value }} per second."
+
+      # Redis
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute."
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}."
+
+      # System Resources
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}."
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
+
+      - alert: DiskSpaceLow
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}."
+
+      # WebSocket
+      - alert: HighWebSocketConnections
+        expr: websocket_connections_active > 8000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "Active WebSocket connections: {{ $value }}."
+
+      # Alerts Processing
+      - alert: AlertProcessingBacklog
+        expr: alert_queue_size > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alert processing backlog detected"
+          description: "Alert queue size is {{ $value }}."
+
+      - alert: HighAlertFailureRate
+        expr: rate(alerts_processed_total{status="failed"}[5m]) / rate(alerts_processed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High alert processing failure rate"
+          description: "Alert failure rate is {{ $value | humanizePercentage }}."
