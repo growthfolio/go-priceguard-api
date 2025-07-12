@@ -61,7 +61,7 @@ Sistema backend robusto desenvolvido em Go para alertas de preços de criptomoed
 
 ### APIs Externas
 - **Binance API** - Dados de criptomoedas
-- **SendGrid** - Envio de emails
+- **SendGrid** - Envio de s
 
 ### DevOps & Ferramentas
 - **Docker & Kubernetes** - Containerização e orquestração
@@ -342,7 +342,7 @@ make deploy-production
 ## 📞 Suporte
 
 ### Contatos
-- **Email**: ontato.dev.macedo@gmail.com
+- **Email**: contato.dev.macedo@gmail.com
 - **GitHub**: [PriceGuard API Repository](https://github.com/growthfolio/go-priceguard-api)
 - **Issues**: [Reportar bugs](https://github.com/growthfolio/go-priceguard-api/issues)
 - **LinkedIn**: [Felipe Macedo](https://linkedin.com/in/felipemacedo1)
@@ -361,7 +361,7 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 
 ---
 
-**Desenvolvido por Felipe Macedo com GitHub Copilot**
+**Desenvolvido por Felipe Macedo**
 
 *Sistema backend enterprise-grade, pronto para produção e escalabilidade global.*
 
