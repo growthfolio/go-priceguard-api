@@ -3,22 +3,32 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
+	"github.com/felipe-macedo/go-priceguard-api/internal/application/services"
 	"github.com/felipe-macedo/go-priceguard-api/internal/domain/entities"
 	"github.com/felipe-macedo/go-priceguard-api/internal/domain/repositories"
 )
 
 type AlertHandler struct {
-	alertRepo repositories.AlertRepository
+	alertRepo    repositories.AlertRepository
+	alertMonitor *services.AlertMonitor
+	alertEngine  *services.AlertEngine
 }
 
 // NewAlertHandler creates a new alert handler
-func NewAlertHandler(alertRepo repositories.AlertRepository) *AlertHandler {
+func NewAlertHandler(
+	alertRepo repositories.AlertRepository,
+	alertMonitor *services.AlertMonitor,
+	alertEngine *services.AlertEngine,
+) *AlertHandler {
 	return &AlertHandler{
-		alertRepo: alertRepo,
+		alertRepo:    alertRepo,
+		alertMonitor: alertMonitor,
+		alertEngine:  alertEngine,
 	}
 }
 
@@ -272,4 +282,164 @@ func (h *AlertHandler) DeleteAlert(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// GetAlertStats godoc
+// @Summary Get alert system statistics
+// @Description Get statistics about the alert monitoring system
+// @Tags Alerts
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/alerts/stats [get]
+func (h *AlertHandler) GetAlertStats(c *gin.Context) {
+	_, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	stats, err := h.alertMonitor.GetMonitorStats(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get alert stats"})
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
+}
+
+// TriggerEvaluation godoc
+// @Summary Trigger immediate alert evaluation
+// @Description Trigger an immediate evaluation of all alerts (admin only)
+// @Tags Alerts
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/alerts/trigger-evaluation [post]
+func (h *AlertHandler) TriggerEvaluation(c *gin.Context) {
+	_, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	err := h.alertMonitor.TriggerImmediateEvaluation(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to trigger evaluation", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "Alert evaluation triggered",
+		"triggered_at": time.Now(),
+	})
+}
+
+// EvaluateAlert godoc
+// @Summary Evaluate a specific alert
+// @Description Evaluate a specific alert and return the result
+// @Tags Alerts
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "Alert ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{} "Bad request"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Alert not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /api/alerts/{id}/evaluate [post]
+func (h *AlertHandler) EvaluateAlert(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	alertIDStr := c.Param("id")
+	alertID, err := uuid.Parse(alertIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid alert ID"})
+		return
+	}
+
+	// Get the alert
+	alert, err := h.alertRepo.GetByID(c.Request.Context(), alertID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Alert not found"})
+		return
+	}
+
+	// Check if user owns the alert
+	if alert.UserID != userID.(uuid.UUID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+		return
+	}
+
+	// Evaluate the alert
+	result, err := h.alertEngine.EvaluateAlert(c.Request.Context(), alert)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to evaluate alert", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"alert_id":     alertID,
+		"evaluation":   result,
+		"evaluated_at": time.Now(),
+	})
+}
+
+// GetAlertTypes godoc
+// @Summary Get available alert types and conditions
+// @Description Get list of available alert types and their supported conditions
+// @Tags Alerts
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /api/alerts/types [get]
+func (h *AlertHandler) GetAlertTypes(c *gin.Context) {
+	alertTypes := map[string]interface{}{
+		"price": map[string]interface{}{
+			"description":    "Price-based alerts",
+			"conditions":     []string{"above", "below"},
+			"example_target": 50000.0,
+		},
+		"percentage": map[string]interface{}{
+			"description":    "Percentage change alerts",
+			"conditions":     []string{"up", "down"},
+			"example_target": 5.0,
+		},
+		"rsi": map[string]interface{}{
+			"description":    "RSI indicator alerts",
+			"conditions":     []string{"above", "below"},
+			"example_target": 70.0,
+		},
+		"ema_cross": map[string]interface{}{
+			"description":    "EMA crossover alerts",
+			"conditions":     []string{"up", "down"},
+			"example_target": 20.0,
+		},
+		"sma_cross": map[string]interface{}{
+			"description":    "SMA crossover alerts",
+			"conditions":     []string{"up", "down"},
+			"example_target": 20.0,
+		},
+	}
+
+	timeframes := []string{"1m", "5m", "15m", "1h", "4h", "1d"}
+
+	notificationChannels := []string{"app", "email", "push", "sms"}
+
+	c.JSON(http.StatusOK, gin.H{
+		"alert_types":           alertTypes,
+		"supported_timeframes":  timeframes,
+		"notification_channels": notificationChannels,
+	})
 }

@@ -18,6 +18,8 @@ type Worker struct {
 	cryptoDataService         *services.CryptoDataService
 	technicalIndicatorService *services.TechnicalIndicatorService
 	pullbackEntryService      *services.PullbackEntryService
+	alertEngine               *services.AlertEngine
+	notificationService       *services.NotificationService
 	alertRepo                 repositories.AlertRepository
 	priceHistoryRepo          repositories.PriceHistoryRepository
 	logger                    *logrus.Logger
@@ -36,6 +38,8 @@ func NewWorker(
 	cryptoDataService *services.CryptoDataService,
 	technicalIndicatorService *services.TechnicalIndicatorService,
 	pullbackEntryService *services.PullbackEntryService,
+	alertEngine *services.AlertEngine,
+	notificationService *services.NotificationService,
 	alertRepo repositories.AlertRepository,
 	priceHistoryRepo repositories.PriceHistoryRepository,
 	logger *logrus.Logger,
@@ -46,6 +50,8 @@ func NewWorker(
 		cryptoDataService:         cryptoDataService,
 		technicalIndicatorService: technicalIndicatorService,
 		pullbackEntryService:      pullbackEntryService,
+		alertEngine:               alertEngine,
+		notificationService:       notificationService,
 		alertRepo:                 alertRepo,
 		priceHistoryRepo:          priceHistoryRepo,
 		logger:                    logger,
@@ -126,7 +132,7 @@ func (w *Worker) alertWorker(ctx context.Context) {
 		case <-w.stopChan:
 			return
 		case <-ticker.C:
-			w.checkAndTriggerAlerts(ctx)
+			w.evaluateAndProcessAlerts(ctx)
 		}
 	}
 }
@@ -202,63 +208,67 @@ func (w *Worker) collectAndBroadcastPriceData(ctx context.Context) {
 	}
 }
 
-// checkAndTriggerAlerts checks for alerts that should be triggered
-func (w *Worker) checkAndTriggerAlerts(ctx context.Context) {
-	// Get all enabled alerts
-	alerts, err := w.alertRepo.GetEnabled(ctx)
-	if err != nil {
-		w.logger.WithError(err).Error("Failed to get enabled alerts")
+// evaluateAndProcessAlerts uses the Alert Engine to evaluate and process alerts
+func (w *Worker) evaluateAndProcessAlerts(ctx context.Context) {
+	if w.alertEngine == nil {
+		w.logger.Warn("Alert engine not available, skipping alert evaluation")
 		return
 	}
 
-	for _, alert := range alerts {
-		// Get current price for the symbol using PriceHistoryRepository
-		priceData, err := w.priceHistoryRepo.GetLatest(ctx, alert.Symbol, "1m")
-		if err != nil {
-			w.logger.WithError(err).WithField("symbol", alert.Symbol).Error("Failed to get price for alert check")
-			continue
-		}
+	// Use the Alert Engine to evaluate all alerts
+	results, err := w.alertEngine.EvaluateAllAlerts(ctx)
+	if err != nil {
+		w.logger.WithError(err).Error("Failed to evaluate alerts")
+		return
+	}
 
-		if priceData == nil {
-			continue // No data available
-		}
-
-		currentPrice := priceData.ClosePrice
-
-		// Check if alert condition is met
-		shouldTrigger := w.evaluateAlertCondition(&alert, currentPrice)
-
-		if shouldTrigger {
-			// Mark alert as triggered
-			now := time.Now()
-			alert.TriggeredAt = &now
-
-			if err := w.alertRepo.Update(ctx, &alert); err != nil {
-				w.logger.WithError(err).WithField("alert_id", alert.ID).Error("Failed to update triggered alert")
+	// Process triggered alerts
+	for _, result := range results {
+		if result.ShouldTrigger {
+			// Get the alert to broadcast via WebSocket
+			alert, err := w.alertRepo.GetByID(ctx, result.AlertID)
+			if err != nil {
+				w.logger.WithError(err).WithField("alert_id", result.AlertID).Error("Failed to get alert for broadcast")
 				continue
 			}
 
-			// Broadcast alert triggered event
-			w.handler.BroadcastAlertTriggered(&alert, currentPrice)
+			// Broadcast alert triggered event via WebSocket
+			w.handler.BroadcastAlertTriggered(alert, result.CurrentValue)
 
-			// Create notification record (commented out as it would need a notification service)
-			// notification := entities.Notification{
-			// 	UserID:           alert.UserID,
-			// 	AlertID:          &alert.ID,
-			// 	NotificationType: "alert_triggered",
-			// 	Title:            "Price Alert Triggered",
-			// 	Message:          fmt.Sprintf("Alert for %s triggered. Current price: %.8f", alert.Symbol, currentPrice),
-			// }
+			// Queue notification for multiple channels if notification service is available
+			if w.notificationService != nil {
+				channels := []services.NotificationChannel{services.ChannelInApp}
 
-			// This would typically be handled by a notification service
+				// Add other channels based on alert settings
+				for _, notifyVia := range alert.NotifyVia {
+					switch notifyVia {
+					case "email":
+						channels = append(channels, services.ChannelEmail)
+					case "push":
+						channels = append(channels, services.ChannelPush)
+					case "sms":
+						channels = append(channels, services.ChannelSMS)
+					}
+				}
+
+				err := w.notificationService.QueueAlertNotification(ctx, alert, result.CurrentValue, channels)
+				if err != nil {
+					w.logger.WithError(err).WithField("alert_id", result.AlertID).Error("Failed to queue alert notification")
+				}
+			}
+
 			w.logger.WithFields(logrus.Fields{
-				"alert_id":      alert.ID,
+				"alert_id":      result.AlertID,
 				"symbol":        alert.Symbol,
-				"current_price": currentPrice,
-				"target_value":  alert.TargetValue,
-			}).Info("Alert triggered")
+				"current_value": result.CurrentValue,
+				"target_value":  result.TargetValue,
+				"message":       result.Message,
+			}).Info("Alert processed and broadcasted")
 		}
 	}
+
+	// Cleanup expired throttles
+	w.alertEngine.CleanupThrottles()
 }
 
 // calculateAndBroadcastIndicators calculates and broadcasts technical indicators

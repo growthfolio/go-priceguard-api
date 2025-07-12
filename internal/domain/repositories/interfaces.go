@@ -55,7 +55,11 @@ type NotificationRepository interface {
 	GetByUserID(ctx context.Context, userID uuid.UUID, limit, offset int) ([]entities.Notification, error)
 	GetUnread(ctx context.Context, userID uuid.UUID, limit, offset int) ([]entities.Notification, error)
 	MarkAsRead(ctx context.Context, ids []uuid.UUID, userID uuid.UUID) error
+	Update(ctx context.Context, notification *entities.Notification) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountUnreadByUserID(ctx context.Context, userID uuid.UUID) (int64, error)
+	MarkAllAsReadByUserID(ctx context.Context, userID uuid.UUID) (int, error)
 }
 
 // PriceHistoryRepository defines the interface for price history operations

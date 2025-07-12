@@ -80,3 +80,28 @@ func (r *notificationRepository) MarkAsRead(ctx context.Context, ids []uuid.UUID
 func (r *notificationRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&entities.Notification{}, id).Error
 }
+
+func (r *notificationRepository) CountByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&entities.Notification{}).Where("user_id = ?", userID).Count(&count).Error
+	return count, err
+}
+
+func (r *notificationRepository) CountUnreadByUserID(ctx context.Context, userID uuid.UUID) (int64, error) {
+	var count int64
+	err := r.db.WithContext(ctx).Model(&entities.Notification{}).Where("user_id = ? AND read_at IS NULL", userID).Count(&count).Error
+	return count, err
+}
+
+func (r *notificationRepository) MarkAllAsReadByUserID(ctx context.Context, userID uuid.UUID) (int, error) {
+	now := time.Now()
+	result := r.db.WithContext(ctx).Model(&entities.Notification{}).
+		Where("user_id = ? AND read_at IS NULL", userID).
+		Update("read_at", &now)
+
+	return int(result.RowsAffected), result.Error
+}
+
+func (r *notificationRepository) Update(ctx context.Context, notification *entities.Notification) error {
+	return r.db.WithContext(ctx).Save(notification).Error
+}

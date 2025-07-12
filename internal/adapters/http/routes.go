@@ -84,14 +84,68 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 		deps.Logger,
 	)
 
+	// Initialize Alert Engine
+	alertEngine := appservices.NewAlertEngine(
+		alertRepo,
+		priceHistoryRepo,
+		technicalIndicatorRepo,
+		notificationRepo,
+		technicalIndicatorService,
+		deps.Logger,
+	)
+
+	// Initialize Notification Service
+	notificationService := appservices.NewNotificationService(
+		notificationRepo,
+		userRepo,
+		deps.DBManager.GetRedis().GetClient(),
+		deps.Logger,
+	)
+
 	// Initialize WebSocket components
 	wsHub := websocket.NewHub(authService, deps.Logger)
+
+	// Initialize Alert WebSocket Service
+	alertWebSocketService := appservices.NewAlertWebSocketService(
+		wsHub,
+		notificationService,
+		alertEngine,
+		deps.Logger,
+	)
+
+	// Set WebSocket service in alert engine for broadcasting
+	alertEngine.SetWebSocketService(alertWebSocketService)
+
+	// Initialize Alert Monitor
+	alertMonitor := appservices.NewAlertMonitor(
+		alertEngine,
+		notificationService,
+		cryptoDataService,
+		alertRepo,
+		deps.Logger,
+	)
+
+	// Start services
+	ctx := context.Background()
+	notificationService.StartProcessing(ctx)
+	alertMonitor.Start(ctx)
+
 	wsHandler := websocket.NewWebSocketHandler(wsHub, cryptoDataService, technicalIndicatorService, pullbackEntryService, deps.Logger)
-	wsWorker := websocket.NewWorker(wsHub, wsHandler, cryptoDataService, technicalIndicatorService, pullbackEntryService, alertRepo, priceHistoryRepo, deps.Logger)
+	wsWorker := websocket.NewWorker(
+		wsHub,
+		wsHandler,
+		cryptoDataService,
+		technicalIndicatorService,
+		pullbackEntryService,
+		alertEngine,
+		notificationService,
+		alertRepo,
+		priceHistoryRepo,
+		deps.Logger,
+	)
 
 	// Start WebSocket hub and worker
 	go wsHub.Start()
-	ctx := context.Background()
 	go wsWorker.Start(ctx)
 
 	// Initialize middleware
@@ -101,8 +155,8 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 	authHandler := handlers.NewAuthHandler(authService, deps.Logger)
 	userHandler := handlers.NewUserHandler(userRepo, userSettingsRepo)
 	cryptoHandler := handlers.NewCryptoHandler(cryptoRepo, priceHistoryRepo, technicalIndicatorRepo)
-	alertHandler := handlers.NewAlertHandler(alertRepo)
-	notificationHandler := handlers.NewNotificationHandler(notificationRepo)
+	alertHandler := handlers.NewAlertHandler(alertRepo, alertMonitor, alertEngine)
+	notificationHandler := handlers.NewNotificationHandler(notificationRepo, notificationService)
 	indicatorHandler := handlers.NewIndicatorHandler(technicalIndicatorService, deps.Logger)
 	pullbackHandler := handlers.NewPullbackHandler(pullbackEntryService, deps.Logger)
 
@@ -148,6 +202,10 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 			alerts.POST("", alertHandler.CreateAlert)
 			alerts.PUT("/:id", alertHandler.UpdateAlert)
 			alerts.DELETE("/:id", alertHandler.DeleteAlert)
+			alerts.GET("/types", alertHandler.GetAlertTypes)
+			alerts.GET("/stats", alertHandler.GetAlertStats)
+			alerts.POST("/trigger-evaluation", alertHandler.TriggerEvaluation)
+			alerts.POST("/:id/evaluate", alertHandler.EvaluateAlert)
 		}
 
 		// Notification routes
@@ -155,6 +213,10 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 		{
 			notifications.GET("", notificationHandler.GetNotifications)
 			notifications.POST("/mark-read", notificationHandler.MarkAsRead)
+			notifications.POST("/mark-all-read", notificationHandler.MarkAllAsRead)
+			notifications.DELETE("/:id", notificationHandler.DeleteNotification)
+			notifications.POST("/test", notificationHandler.CreateTestNotification)
+			notifications.GET("/stats", notificationHandler.GetNotificationStats)
 		}
 
 		// Technical Indicator routes
