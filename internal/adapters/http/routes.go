@@ -47,6 +47,20 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) {
 		deps.Logger,
 	)
 
+	// Initialize technical indicator service
+	technicalIndicatorService := appservices.NewTechnicalIndicatorService(
+		priceHistoryRepo,
+		technicalIndicatorRepo,
+		deps.Logger,
+	)
+
+	// Initialize pullback entry service
+	pullbackEntryService := appservices.NewPullbackEntryService(
+		priceHistoryRepo,
+		technicalIndicatorRepo,
+		deps.Logger,
+	)
+
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(authService, deps.Logger)
 
@@ -56,6 +70,8 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) {
 	cryptoHandler := handlers.NewCryptoHandler(cryptoRepo, priceHistoryRepo, technicalIndicatorRepo)
 	alertHandler := handlers.NewAlertHandler(alertRepo)
 	notificationHandler := handlers.NewNotificationHandler(notificationRepo)
+	indicatorHandler := handlers.NewIndicatorHandler(technicalIndicatorService, deps.Logger)
+	pullbackHandler := handlers.NewPullbackHandler(pullbackEntryService, deps.Logger)
 
 	// Public routes
 	publicAPI := router.Group("/api")
@@ -106,6 +122,24 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) {
 		{
 			notifications.GET("", notificationHandler.GetNotifications)
 			notifications.POST("/mark-read", notificationHandler.MarkAsRead)
+		}
+
+		// Technical Indicator routes
+		indicators := protectedAPI.Group("/indicators")
+		{
+			indicators.POST("/:symbol/rsi", indicatorHandler.CalculateRSI)
+			indicators.POST("/:symbol/ema", indicatorHandler.CalculateEMA)
+			indicators.POST("/:symbol/sma", indicatorHandler.CalculateSMA)
+			indicators.POST("/:symbol/supertrend", indicatorHandler.CalculateSuperTrend)
+			indicators.POST("/:symbol/all", indicatorHandler.CalculateAllIndicators)
+			indicators.GET("/:symbol/latest", indicatorHandler.GetLatestIndicators)
+		}
+
+		// Pullback Entry routes
+		pullback := protectedAPI.Group("/pullback")
+		{
+			pullback.GET("/:symbol/analyze", pullbackHandler.AnalyzePullbackEntry)
+			pullback.GET("/:symbol/multi", pullbackHandler.GetPullbackEntriesMultiTimeframe)
 		}
 	}
 }
