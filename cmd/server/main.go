@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	httphandler "github.com/felipe-macedo/go-priceguard-api/internal/adapters/http"
-	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure"
-	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/config"
-	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/database"
 	"github.com/gin-gonic/gin"
+	httphandler "github.com/growthfolio/go-priceguard-api/internal/adapters/http"
+	"github.com/growthfolio/go-priceguard-api/internal/infrastructure"
+	"github.com/growthfolio/go-priceguard-api/internal/infrastructure/config"
+	"github.com/growthfolio/go-priceguard-api/internal/infrastructure/database"
 	"github.com/sirupsen/logrus"
 )
 

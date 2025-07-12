@@ -1,0 +1,30 @@
+# Air configuration for test watching
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go test -v ./..."
+bin = "tmp/test"
+full_bin = ""
+include_ext = ["go"]
+exclude_dir = ["tmp", "vendor", "node_modules"]
+include_dir = ["tests"]
+exclude_file = []
+exclude_regex = []
+exclude_unchanged = true
+follow_symlink = true
+log = "air_test.log"
+delay = 1000 # ms
+stop_on_root = true
+
+[log]
+time = true
+
+[color]
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+
+[misc]
+clean_on_exit = true
