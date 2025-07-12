@@ -11,9 +11,9 @@ import (
 	"time"
 
 	httphandler "github.com/felipe-macedo/go-priceguard-api/internal/adapters/http"
+	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/config"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/database"
-	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -32,9 +32,22 @@ func main() {
 		logger.Fatalf("Failed to initialize zap logger: %v", err)
 	}
 	defer zapLogger.Sync()
-	
+
 	logger.Info("Starting PriceGuard API server...")
 	zapLogger.Info("Zap logger initialized successfully")
+
+	// Initialize tracing
+	tracingManager, err := infrastructure.NewDefaultTracingManager(zapLogger)
+	if err != nil {
+		logger.Fatalf("Failed to initialize tracing: %v", err)
+	}
+	defer func() {
+		if tracingManager != nil {
+			if err := tracingManager.Shutdown(context.Background()); err != nil {
+				logger.Errorf("Failed to shutdown tracing: %v", err)
+			}
+		}
+	}()
 
 	// Initialize database connections
 	dbManager, err := database.NewManager(cfg, logger)
@@ -84,11 +97,12 @@ func main() {
 
 	// Setup API routes and WebSocket
 	routerDeps := &httphandler.RouterDependencies{
-		Config:      cfg,
-		Logger:      logger,
-		ZapLogger:   zapLogger,
-		DBManager:   dbManager,
-		RedisClient: dbManager.GetRedis().GetClient(),
+		Config:         cfg,
+		Logger:         logger,
+		ZapLogger:      zapLogger,
+		DBManager:      dbManager,
+		RedisClient:    dbManager.GetRedis().GetClient(),
+		TracingManager: tracingManager,
 	}
 	wsManager := httphandler.SetupRoutes(router, routerDeps)
 

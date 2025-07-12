@@ -13,6 +13,7 @@ import (
 	"github.com/felipe-macedo/go-priceguard-api/internal/adapters/websocket"
 	appservices "github.com/felipe-macedo/go-priceguard-api/internal/application/services"
 	domainservices "github.com/felipe-macedo/go-priceguard-api/internal/domain/services"
+	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/config"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/database"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/external"
@@ -21,11 +22,12 @@ import (
 
 // RouterDependencies holds all dependencies needed for setting up routes
 type RouterDependencies struct {
-	Config      *config.Config
-	Logger      *logrus.Logger
-	ZapLogger   *zap.Logger
-	DBManager   *database.Manager
-	RedisClient *redis.Client
+	Config         *config.Config
+	Logger         *logrus.Logger
+	ZapLogger      *zap.Logger
+	DBManager      *database.Manager
+	RedisClient    *redis.Client
+	TracingManager *infrastructure.TracingManager
 }
 
 // WebSocketManager holds WebSocket-related components
@@ -160,6 +162,7 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 
 	// Initialize handlers
 	healthHandler := handlers.NewHealthHandler(deps.DBManager.GetDB(), deps.RedisClient)
+	metricsHandler := handlers.NewMetricsHandler(deps.DBManager.GetDB(), deps.RedisClient, deps.ZapLogger)
 	authHandler := handlers.NewAuthHandler(authService, deps.Logger)
 	userHandler := handlers.NewUserHandler(userRepo, userSettingsRepo)
 	cryptoHandler := handlers.NewCryptoHandler(cryptoRepo, priceHistoryRepo, technicalIndicatorRepo)
@@ -169,7 +172,7 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 	pullbackHandler := handlers.NewPullbackHandler(pullbackEntryService, deps.Logger)
 
 	// Health check routes (no auth required)
-	setupHealthRoutes(router, healthHandler)
+	setupHealthRoutes(router, healthHandler, metricsHandler)
 
 	// Public routes
 	publicAPI := router.Group("/api")
@@ -261,15 +264,22 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 }
 
 // setupGlobalMiddlewares configura middlewares globais de segurança e observabilidade
-func setupGlobalMiddlewares(router *gin.Engine, deps *RouterDependencies) {
-	// Security headers (primeiro)
+func setupGlobalMiddlewares(router *gin.Engine, deps *RouterDependencies) { // Security headers (primeiro)
 	router.Use(middleware.SecurityHeadersMiddleware())
 
 	// CORS
 	router.Use(middleware.CORSMiddleware())
 
-	// Request ID
+	// Request ID (antes do tracing para incluir nos spans)
 	router.Use(middleware.RequestIDMiddleware())
+
+	// Distributed Tracing (se habilitado)
+	if deps.TracingManager != nil {
+		router.Use(middleware.CustomTracingMiddleware("priceguard-api"))
+	}
+
+	// Prometheus metrics
+	router.Use(middleware.PrometheusMiddleware())
 
 	// Logging (com zap logger se disponível)
 	if deps.ZapLogger != nil {
@@ -299,7 +309,7 @@ func setupGlobalMiddlewares(router *gin.Engine, deps *RouterDependencies) {
 }
 
 // setupHealthRoutes configura rotas de health check e métricas
-func setupHealthRoutes(router *gin.Engine, healthHandler *handlers.HealthHandler) {
+func setupHealthRoutes(router *gin.Engine, healthHandler *handlers.HealthHandler, metricsHandler *handlers.MetricsHandler) {
 	// Health check routes (sem autenticação)
 	health := router.Group("/")
 	{
@@ -307,6 +317,17 @@ func setupHealthRoutes(router *gin.Engine, healthHandler *handlers.HealthHandler
 		health.GET("/health/live", healthHandler.Live)
 		health.GET("/health/ready", healthHandler.Ready)
 		health.GET("/metrics", healthHandler.Metrics)
+	}
+
+	// Métricas Prometheus (endpoint padrão)
+	router.GET("/prometheus", metricsHandler.PrometheusMetrics())
+
+	// Métricas customizadas
+	metrics := router.Group("/api/metrics")
+	{
+		metrics.GET("/system", metricsHandler.SystemInfo)
+		metrics.GET("/custom", metricsHandler.CustomMetrics)
+		metrics.GET("/application", metricsHandler.ApplicationMetrics)
 	}
 }
 

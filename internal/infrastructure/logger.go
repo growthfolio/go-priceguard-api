@@ -6,6 +6,7 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 // LoggerConfig configuração do logger
@@ -101,4 +102,107 @@ func NewDefaultLogger() (*zap.Logger, error) {
 	}
 
 	return NewLogger(config)
+}
+
+// NewFileLogger cria um logger com rotação de arquivos
+func NewFileLogger(filename string) (*zap.Logger, error) {
+	env := os.Getenv("GIN_MODE")
+	if env == "" {
+		env = "development"
+	}
+
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	// Configuração do lumberjack para rotação de logs
+	logRotator := &lumberjack.Logger{
+		Filename:   filename,
+		MaxSize:    100, // MB
+		MaxBackups: 5,   // Número de backups
+		MaxAge:     30,  // Dias
+		Compress:   true,
+	}
+
+	// Configuração do core do zap
+	var encoder zapcore.Encoder
+	if env == "production" {
+		encoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+	} else {
+		encoder = zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig())
+	}
+
+	level := parseLogLevel(logLevel)
+	core := zapcore.NewCore(
+		encoder,
+		zapcore.AddSync(logRotator),
+		level,
+	)
+
+	logger := zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+
+	// Adiciona campos padrão
+	logger = logger.With(zap.String("service", "priceguard-api"))
+
+	return logger, nil
+}
+
+// NewMultiOutputLogger cria um logger que escreve em múltiplos outputs
+func NewMultiOutputLogger(outputs []string) (*zap.Logger, error) {
+	env := os.Getenv("GIN_MODE")
+	if env == "" {
+		env = "development"
+	}
+
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	var cores []zapcore.Core
+	level := parseLogLevel(logLevel)
+
+	for _, output := range outputs {
+		var writer zapcore.WriteSyncer
+		var encoder zapcore.Encoder
+
+		switch output {
+		case "stdout":
+			writer = zapcore.AddSync(os.Stdout)
+			if env == "production" {
+				encoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+			} else {
+				config := zap.NewDevelopmentEncoderConfig()
+				config.EncodeLevel = zapcore.CapitalColorLevelEncoder
+				encoder = zapcore.NewConsoleEncoder(config)
+			}
+		case "stderr":
+			writer = zapcore.AddSync(os.Stderr)
+			encoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+		default:
+			// Assume que é um arquivo
+			logRotator := &lumberjack.Logger{
+				Filename:   output,
+				MaxSize:    100,
+				MaxBackups: 5,
+				MaxAge:     30,
+				Compress:   true,
+			}
+			writer = zapcore.AddSync(logRotator)
+			encoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+		}
+
+		core := zapcore.NewCore(encoder, writer, level)
+		cores = append(cores, core)
+	}
+
+	// Combina todos os cores
+	combinedCore := zapcore.NewTee(cores...)
+	logger := zap.New(combinedCore, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+
+	// Adiciona campos padrão
+	logger = logger.With(zap.String("service", "priceguard-api"))
+
+	return logger, nil
 }
