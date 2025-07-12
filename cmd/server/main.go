@@ -13,6 +13,7 @@ import (
 	httphandler "github.com/felipe-macedo/go-priceguard-api/internal/adapters/http"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/config"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/database"
+	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -24,9 +25,16 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Setup logger
+	// Setup loggers
 	logger := setupLogger(cfg)
+	zapLogger, err := infrastructure.NewDefaultLogger()
+	if err != nil {
+		logger.Fatalf("Failed to initialize zap logger: %v", err)
+	}
+	defer zapLogger.Sync()
+	
 	logger.Info("Starting PriceGuard API server...")
+	zapLogger.Info("Zap logger initialized successfully")
 
 	// Initialize database connections
 	dbManager, err := database.NewManager(cfg, logger)
@@ -41,9 +49,7 @@ func main() {
 	// Initialize Gin router
 	router := gin.New()
 
-	// Add basic middleware
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
+	// Note: Middlewares são configurados em SetupRoutes
 
 	// Basic health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -78,9 +84,11 @@ func main() {
 
 	// Setup API routes and WebSocket
 	routerDeps := &httphandler.RouterDependencies{
-		Config:    cfg,
-		Logger:    logger,
-		DBManager: dbManager,
+		Config:      cfg,
+		Logger:      logger,
+		ZapLogger:   zapLogger,
+		DBManager:   dbManager,
+		RedisClient: dbManager.GetRedis().GetClient(),
 	}
 	wsManager := httphandler.SetupRoutes(router, routerDeps)
 

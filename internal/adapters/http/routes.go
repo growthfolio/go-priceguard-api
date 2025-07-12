@@ -4,6 +4,8 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 
 	"github.com/felipe-macedo/go-priceguard-api/internal/adapters/http/handlers"
 	"github.com/felipe-macedo/go-priceguard-api/internal/adapters/http/middleware"
@@ -19,9 +21,11 @@ import (
 
 // RouterDependencies holds all dependencies needed for setting up routes
 type RouterDependencies struct {
-	Config    *config.Config
-	Logger    *logrus.Logger
-	DBManager *database.Manager
+	Config      *config.Config
+	Logger      *logrus.Logger
+	ZapLogger   *zap.Logger
+	DBManager   *database.Manager
+	RedisClient *redis.Client
 }
 
 // WebSocketManager holds WebSocket-related components
@@ -151,7 +155,11 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(authService, deps.Logger)
 
+	// Setup global middlewares
+	setupGlobalMiddlewares(router, deps)
+
 	// Initialize handlers
+	healthHandler := handlers.NewHealthHandler(deps.DBManager.GetDB(), deps.RedisClient)
 	authHandler := handlers.NewAuthHandler(authService, deps.Logger)
 	userHandler := handlers.NewUserHandler(userRepo, userSettingsRepo)
 	cryptoHandler := handlers.NewCryptoHandler(cryptoRepo, priceHistoryRepo, technicalIndicatorRepo)
@@ -159,6 +167,9 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 	notificationHandler := handlers.NewNotificationHandler(notificationRepo, notificationService)
 	indicatorHandler := handlers.NewIndicatorHandler(technicalIndicatorService, deps.Logger)
 	pullbackHandler := handlers.NewPullbackHandler(pullbackEntryService, deps.Logger)
+
+	// Health check routes (no auth required)
+	setupHealthRoutes(router, healthHandler)
 
 	// Public routes
 	publicAPI := router.Group("/api")
@@ -176,6 +187,7 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 	// Protected routes
 	protectedAPI := router.Group("/api")
 	protectedAPI.Use(authMiddleware.RequireAuth())
+	setupAuthenticatedRateLimit(protectedAPI, deps.RedisClient)
 	{
 		// User routes
 		user := protectedAPI.Group("/user")
@@ -245,5 +257,63 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 		Hub:     wsHub,
 		Handler: wsHandler,
 		Worker:  wsWorker,
+	}
+}
+
+// setupGlobalMiddlewares configura middlewares globais de segurança e observabilidade
+func setupGlobalMiddlewares(router *gin.Engine, deps *RouterDependencies) {
+	// Security headers (primeiro)
+	router.Use(middleware.SecurityHeadersMiddleware())
+
+	// CORS
+	router.Use(middleware.CORSMiddleware())
+
+	// Request ID
+	router.Use(middleware.RequestIDMiddleware())
+
+	// Logging (com zap logger se disponível)
+	if deps.ZapLogger != nil {
+		router.Use(middleware.LoggingMiddleware(deps.ZapLogger))
+	}
+
+	// Error handling
+	if deps.ZapLogger != nil {
+		router.Use(middleware.ErrorHandlingMiddleware(deps.ZapLogger))
+	}
+
+	// Compression
+	router.Use(middleware.CompressionMiddleware())
+
+	// Rate limiting (se Redis estiver disponível)
+	if deps.RedisClient != nil {
+		// Rate limit mais permissivo para rotas públicas
+		publicRateLimit := middleware.DefaultRateLimitConfig()
+		router.Use(middleware.RateLimitMiddleware(deps.RedisClient, publicRateLimit))
+	}
+
+	// Input sanitization
+	router.Use(middleware.SanitizeInputMiddleware())
+
+	// CSRF protection para rotas que modificam estado
+	router.Use(middleware.CSRFProtectionMiddleware())
+}
+
+// setupHealthRoutes configura rotas de health check e métricas
+func setupHealthRoutes(router *gin.Engine, healthHandler *handlers.HealthHandler) {
+	// Health check routes (sem autenticação)
+	health := router.Group("/")
+	{
+		health.GET("/health", healthHandler.Health)
+		health.GET("/health/live", healthHandler.Live)
+		health.GET("/health/ready", healthHandler.Ready)
+		health.GET("/metrics", healthHandler.Metrics)
+	}
+}
+
+// setupAuthenticatedRateLimit configura rate limiting específico para usuários autenticados
+func setupAuthenticatedRateLimit(group *gin.RouterGroup, redisClient *redis.Client) {
+	if redisClient != nil {
+		authRateLimit := middleware.AuthenticatedUserRateLimitConfig()
+		group.Use(middleware.RateLimitMiddleware(redisClient, authRateLimit))
 	}
 }
