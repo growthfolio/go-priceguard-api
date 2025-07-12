@@ -1,11 +1,11 @@
 # Go PriceGuard API Makefile
 
-.PHONY: help build run test test-cover lint clean docker-up docker-down migrate-up migrate-down deps dev
+.PHONY: help build run test test-cover lint clean docker-up docker-down migrate-up migrate-down deps dev install-tools docs
 
 # Variables
 BINARY_NAME=priceguard-api
 DOCKER_COMPOSE_FILE=docker-compose.yml
-MIGRATE_PATH=./migrations
+MIGRATE_PATH=./db/migrations
 DATABASE_URL=postgres://postgres:password@localhost:5432/priceguard?sslmode=disable
 
 # Default target
@@ -15,16 +15,20 @@ help: ## Show this help message
 	@echo 'Usage:'
 	@echo '    make build           Compile the project'
 	@echo '    make run             Run the application'
+	@echo '    make dev             Run with hot reload (air)'
 	@echo '    make test            Run tests'
 	@echo '    make test-cover      Run tests with coverage'
+	@echo '    make test-race       Run tests with race detection'
 	@echo '    make lint            Run linter'
+	@echo '    make fmt             Format code'
 	@echo '    make clean           Clean build files'
 	@echo '    make deps            Install dependencies'
-	@echo '    make dev             Run in development mode with hot reload'
+	@echo '    make install-tools   Install development tools'
 	@echo '    make docker-up       Start all services with Docker'
 	@echo '    make docker-down     Stop all Docker services'
 	@echo '    make migrate-up      Run database migrations'
 	@echo '    make migrate-down    Rollback database migrations'
+	@echo '    make docs            Generate API documentation'
 	@echo
 
 # Build the application
@@ -54,6 +58,11 @@ test-cover: ## Run tests with coverage report
 	@go test -v -race -coverprofile=coverage.out ./...
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
+
+# Run tests with race detection
+test-race: ## Run tests with race detection
+	@echo "Running tests with race detection..."
+	@go test -race -v ./...
 
 # Run linter
 lint: ## Run golangci-lint
@@ -98,46 +107,37 @@ migrate-create: ## Create a new migration file (usage: make migrate-create NAME=
 	@echo "Creating migration: $(NAME)"
 	@migrate create -ext sql -dir $(MIGRATE_PATH) $(NAME)
 
+# Documentation
+docs: ## Generate API documentation
+	@echo "Generating API documentation..."
+	@swag init -g cmd/server/main.go -o docs/swagger
+
 # Install development tools
 install-tools: ## Install development tools
 	@echo "Installing development tools..."
-	@go install github.com/cosmtrek/air@latest
+	@go install github.com/air-verse/air@latest
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	@go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+	@go install golang.org/x/tools/cmd/goimports@latest
+	@go install github.com/swaggo/swag/cmd/swag@latest
+	@go install go.uber.org/mock/mockgen@latest
+	@go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
-# Format code
-fmt: ## Format Go code
-	@echo "Formatting code..."
-	@go fmt ./...
-
-# Generate mocks (requires mockery)
-mocks: ## Generate mock files
-	@echo "Generating mocks..."
-	@mockery --all --output=./mocks
-
-# Security scan
-security: ## Run security scanner
-	@echo "Running security scan..."
-	@gosec ./...
-
-# Check for outdated dependencies
-mod-check: ## Check for outdated dependencies
-	@echo "Checking for outdated dependencies..."
-	@go list -u -m all
-
-# Generate swagger documentation
-swagger: ## Generate Swagger documentation
-	@echo "Generating Swagger documentation..."
-	@swag init -g cmd/server/main.go -o ./docs
-
-# Run all checks (lint, test, security)
-check: lint test security ## Run all checks
-
-# Setup development environment
-setup: deps install-tools ## Setup development environment
+# Development setup
+dev-setup: deps install-tools ## Setup complete development environment
 	@echo "Setting up development environment..."
-	@cp .env.example .env
+	@cp .env.example .env || true
+	@echo "Development environment ready!"
 	@echo "Don't forget to update .env with your configuration!"
+
+# All-in-one development start
+dev-start: docker-up ## Start complete development environment
+	@echo "Starting development environment..."
+	@echo "Waiting for services to be ready..."
+	@sleep 5
+	@echo "Development environment ready!"
+	@echo "API: http://localhost:8080"
+	@echo "Adminer: http://localhost:8081"
+	@echo "Redis Commander: http://localhost:8082"
 
 # Production build
 build-prod: ## Build for production
