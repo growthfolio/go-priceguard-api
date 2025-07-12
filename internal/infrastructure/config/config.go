@@ -228,8 +228,11 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("JWT_SECRET is required")
 	}
 
-	if c.Google.ClientID == "" || c.Google.ClientSecret == "" {
-		return fmt.Errorf("Google OAuth credentials are required")
+	// In development, allow placeholder values for Google OAuth
+	if c.App.Environment != "development" {
+		if c.Google.ClientID == "" || c.Google.ClientSecret == "" {
+			return fmt.Errorf("Google OAuth credentials are required")
+		}
 	}
 
 	return nil

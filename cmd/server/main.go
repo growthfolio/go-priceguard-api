@@ -76,13 +76,13 @@ func main() {
 		})
 	})
 
-	// Setup API routes
+	// Setup API routes and WebSocket
 	routerDeps := &httphandler.RouterDependencies{
 		Config:    cfg,
 		Logger:    logger,
 		DBManager: dbManager,
 	}
-	httphandler.SetupRoutes(router, routerDeps)
+	wsManager := httphandler.SetupRoutes(router, routerDeps)
 
 	// Create HTTP server
 	server := &http.Server{
@@ -107,6 +107,11 @@ func main() {
 	<-quit
 
 	logger.Info("Shutting down server...")
+
+	// Stop WebSocket worker
+	if wsManager != nil && wsManager.Worker != nil {
+		wsManager.Worker.Stop()
+	}
 
 	// Give outstanding requests 30 seconds to complete
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

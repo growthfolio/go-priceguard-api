@@ -1,15 +1,19 @@
 package http
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/felipe-macedo/go-priceguard-api/internal/adapters/http/handlers"
 	"github.com/felipe-macedo/go-priceguard-api/internal/adapters/http/middleware"
 	"github.com/felipe-macedo/go-priceguard-api/internal/adapters/repository"
+	"github.com/felipe-macedo/go-priceguard-api/internal/adapters/websocket"
 	appservices "github.com/felipe-macedo/go-priceguard-api/internal/application/services"
 	domainservices "github.com/felipe-macedo/go-priceguard-api/internal/domain/services"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/config"
 	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/database"
+	"github.com/felipe-macedo/go-priceguard-api/internal/infrastructure/external"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,8 +24,15 @@ type RouterDependencies struct {
 	DBManager *database.Manager
 }
 
-// SetupRoutes configures all API routes
-func SetupRoutes(router *gin.Engine, deps *RouterDependencies) {
+// WebSocketManager holds WebSocket-related components
+type WebSocketManager struct {
+	Hub     *websocket.Hub
+	Handler *websocket.WebSocketHandler
+	Worker  *websocket.Worker
+}
+
+// SetupRoutes configures all API routes and WebSocket endpoints
+func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager {
 	// Initialize repositories
 	userRepo := repository.NewUserRepository(deps.DBManager.GetDB())
 	userSettingsRepo := repository.NewUserSettingsRepository(deps.DBManager.GetDB())
@@ -60,6 +71,28 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) {
 		technicalIndicatorRepo,
 		deps.Logger,
 	)
+
+	// Initialize Binance client (for crypto data service)
+	binanceClient := external.NewBinanceClient(&deps.Config.Binance, deps.Logger)
+
+	// Initialize crypto data service
+	cryptoDataService := appservices.NewCryptoDataService(
+		binanceClient,
+		cryptoRepo,
+		priceHistoryRepo,
+		technicalIndicatorRepo,
+		deps.Logger,
+	)
+
+	// Initialize WebSocket components
+	wsHub := websocket.NewHub(authService, deps.Logger)
+	wsHandler := websocket.NewWebSocketHandler(wsHub, cryptoDataService, technicalIndicatorService, pullbackEntryService, deps.Logger)
+	wsWorker := websocket.NewWorker(wsHub, wsHandler, cryptoDataService, technicalIndicatorService, pullbackEntryService, alertRepo, priceHistoryRepo, deps.Logger)
+
+	// Start WebSocket hub and worker
+	go wsHub.Start()
+	ctx := context.Background()
+	go wsWorker.Start(ctx)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(authService, deps.Logger)
@@ -141,5 +174,14 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) {
 			pullback.GET("/:symbol/analyze", pullbackHandler.AnalyzePullbackEntry)
 			pullback.GET("/:symbol/multi", pullbackHandler.GetPullbackEntriesMultiTimeframe)
 		}
+	}
+
+	// WebSocket routes (with JWT authentication via query parameter)
+	router.GET("/ws", wsHandler.HandleConnection)
+
+	return &WebSocketManager{
+		Hub:     wsHub,
+		Handler: wsHandler,
+		Worker:  wsWorker,
 	}
 }

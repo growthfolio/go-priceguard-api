@@ -1,0 +1,387 @@
+package websocket
+
+import (
+	"context"
+	"sync"
+	"time"
+
+	"github.com/felipe-macedo/go-priceguard-api/internal/application/services"
+	"github.com/felipe-macedo/go-priceguard-api/internal/domain/entities"
+	"github.com/felipe-macedo/go-priceguard-api/internal/domain/repositories"
+	"github.com/sirupsen/logrus"
+)
+
+// Worker handles background tasks for WebSocket data broadcasting
+type Worker struct {
+	hub                       *Hub
+	handler                   *WebSocketHandler
+	cryptoDataService         *services.CryptoDataService
+	technicalIndicatorService *services.TechnicalIndicatorService
+	pullbackEntryService      *services.PullbackEntryService
+	alertRepo                 repositories.AlertRepository
+	priceHistoryRepo          repositories.PriceHistoryRepository
+	logger                    *logrus.Logger
+
+	// Control channels
+	stopChan  chan struct{}
+	wg        sync.WaitGroup
+	isRunning bool
+	mutex     sync.RWMutex
+}
+
+// NewWorker creates a new background worker
+func NewWorker(
+	hub *Hub,
+	handler *WebSocketHandler,
+	cryptoDataService *services.CryptoDataService,
+	technicalIndicatorService *services.TechnicalIndicatorService,
+	pullbackEntryService *services.PullbackEntryService,
+	alertRepo repositories.AlertRepository,
+	priceHistoryRepo repositories.PriceHistoryRepository,
+	logger *logrus.Logger,
+) *Worker {
+	return &Worker{
+		hub:                       hub,
+		handler:                   handler,
+		cryptoDataService:         cryptoDataService,
+		technicalIndicatorService: technicalIndicatorService,
+		pullbackEntryService:      pullbackEntryService,
+		alertRepo:                 alertRepo,
+		priceHistoryRepo:          priceHistoryRepo,
+		logger:                    logger,
+		stopChan:                  make(chan struct{}),
+	}
+}
+
+// Start starts all background workers
+func (w *Worker) Start(ctx context.Context) {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	if w.isRunning {
+		w.logger.Warn("Worker is already running")
+		return
+	}
+
+	w.isRunning = true
+	w.logger.Info("Starting WebSocket background workers")
+
+	// Start different worker goroutines
+	w.wg.Add(4)
+	go w.priceDataWorker(ctx)
+	go w.alertWorker(ctx)
+	go w.technicalIndicatorWorker(ctx)
+	go w.marketSummaryWorker(ctx)
+}
+
+// Stop stops all background workers
+func (w *Worker) Stop() {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	if !w.isRunning {
+		return
+	}
+
+	w.logger.Info("Stopping WebSocket background workers")
+	close(w.stopChan)
+	w.wg.Wait()
+	w.isRunning = false
+}
+
+// priceDataWorker periodically collects and broadcasts price data
+func (w *Worker) priceDataWorker(ctx context.Context) {
+	defer w.wg.Done()
+
+	ticker := time.NewTicker(5 * time.Second) // Update every 5 seconds
+	defer ticker.Stop()
+
+	w.logger.Info("Started price data worker")
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-w.stopChan:
+			return
+		case <-ticker.C:
+			w.collectAndBroadcastPriceData(ctx)
+		}
+	}
+}
+
+// alertWorker periodically checks for triggered alerts
+func (w *Worker) alertWorker(ctx context.Context) {
+	defer w.wg.Done()
+
+	ticker := time.NewTicker(10 * time.Second) // Check every 10 seconds
+	defer ticker.Stop()
+
+	w.logger.Info("Started alert worker")
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-w.stopChan:
+			return
+		case <-ticker.C:
+			w.checkAndTriggerAlerts(ctx)
+		}
+	}
+}
+
+// technicalIndicatorWorker periodically calculates and broadcasts technical indicators
+func (w *Worker) technicalIndicatorWorker(ctx context.Context) {
+	defer w.wg.Done()
+
+	ticker := time.NewTicker(30 * time.Second) // Update every 30 seconds
+	defer ticker.Stop()
+
+	w.logger.Info("Started technical indicator worker")
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-w.stopChan:
+			return
+		case <-ticker.C:
+			w.calculateAndBroadcastIndicators(ctx)
+		}
+	}
+}
+
+// marketSummaryWorker periodically broadcasts market summary
+func (w *Worker) marketSummaryWorker(ctx context.Context) {
+	defer w.wg.Done()
+
+	ticker := time.NewTicker(60 * time.Second) // Update every minute
+	defer ticker.Stop()
+
+	w.logger.Info("Started market summary worker")
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-w.stopChan:
+			return
+		case <-ticker.C:
+			w.broadcastMarketSummary(ctx)
+		}
+	}
+}
+
+// collectAndBroadcastPriceData collects latest price data and broadcasts it
+func (w *Worker) collectAndBroadcastPriceData(ctx context.Context) {
+	// Get list of popular symbols to track
+	symbols := []string{"BTCUSDT", "ETHUSDT", "ADAUSDT", "SOLUSDT", "DOTUSDT"}
+
+	for _, symbol := range symbols {
+		// Check if anyone is subscribed to this symbol
+		room := "crypto_" + symbol
+		rooms := w.hub.GetRooms()
+		if _, exists := rooms[room]; !exists {
+			continue // Skip if no one is subscribed
+		}
+
+		// Get latest price data using PriceHistoryRepository
+		priceData, err := w.priceHistoryRepo.GetLatest(ctx, symbol, "1m")
+		if err != nil {
+			w.logger.WithError(err).WithField("symbol", symbol).Error("Failed to get latest price")
+			continue
+		}
+
+		if priceData == nil {
+			continue // No data available
+		}
+
+		// Broadcast the update
+		w.handler.BroadcastCryptoDataUpdate(symbol, priceData)
+	}
+}
+
+// checkAndTriggerAlerts checks for alerts that should be triggered
+func (w *Worker) checkAndTriggerAlerts(ctx context.Context) {
+	// Get all enabled alerts
+	alerts, err := w.alertRepo.GetEnabled(ctx)
+	if err != nil {
+		w.logger.WithError(err).Error("Failed to get enabled alerts")
+		return
+	}
+
+	for _, alert := range alerts {
+		// Get current price for the symbol using PriceHistoryRepository
+		priceData, err := w.priceHistoryRepo.GetLatest(ctx, alert.Symbol, "1m")
+		if err != nil {
+			w.logger.WithError(err).WithField("symbol", alert.Symbol).Error("Failed to get price for alert check")
+			continue
+		}
+
+		if priceData == nil {
+			continue // No data available
+		}
+
+		currentPrice := priceData.ClosePrice
+
+		// Check if alert condition is met
+		shouldTrigger := w.evaluateAlertCondition(&alert, currentPrice)
+
+		if shouldTrigger {
+			// Mark alert as triggered
+			now := time.Now()
+			alert.TriggeredAt = &now
+
+			if err := w.alertRepo.Update(ctx, &alert); err != nil {
+				w.logger.WithError(err).WithField("alert_id", alert.ID).Error("Failed to update triggered alert")
+				continue
+			}
+
+			// Broadcast alert triggered event
+			w.handler.BroadcastAlertTriggered(&alert, currentPrice)
+
+			// Create notification record (commented out as it would need a notification service)
+			// notification := entities.Notification{
+			// 	UserID:           alert.UserID,
+			// 	AlertID:          &alert.ID,
+			// 	NotificationType: "alert_triggered",
+			// 	Title:            "Price Alert Triggered",
+			// 	Message:          fmt.Sprintf("Alert for %s triggered. Current price: %.8f", alert.Symbol, currentPrice),
+			// }
+
+			// This would typically be handled by a notification service
+			w.logger.WithFields(logrus.Fields{
+				"alert_id":      alert.ID,
+				"symbol":        alert.Symbol,
+				"current_price": currentPrice,
+				"target_value":  alert.TargetValue,
+			}).Info("Alert triggered")
+		}
+	}
+}
+
+// calculateAndBroadcastIndicators calculates and broadcasts technical indicators
+func (w *Worker) calculateAndBroadcastIndicators(ctx context.Context) {
+	symbols := []string{"BTCUSDT", "ETHUSDT", "ADAUSDT", "SOLUSDT", "DOTUSDT"}
+	timeframe := "1h"
+
+	for _, symbol := range symbols {
+		// Check if anyone is subscribed to indicators for this symbol
+		room := "indicators_" + symbol
+		rooms := w.hub.GetRooms()
+		if _, exists := rooms[room]; !exists {
+			continue // Skip if no one is subscribed
+		}
+
+		// Calculate indicators first
+		err := w.technicalIndicatorService.CalculateAllIndicators(ctx, symbol, timeframe)
+		if err != nil {
+			w.logger.WithError(err).WithFields(logrus.Fields{
+				"symbol":    symbol,
+				"timeframe": timeframe,
+			}).Error("Failed to calculate indicators")
+			continue
+		}
+
+		// Get latest indicators
+		indicatorMap, err := w.technicalIndicatorService.GetLatestIndicators(ctx, symbol, timeframe)
+		if err != nil {
+			w.logger.WithError(err).WithFields(logrus.Fields{
+				"symbol":    symbol,
+				"timeframe": timeframe,
+			}).Error("Failed to get latest indicators")
+			continue
+		}
+
+		// Convert to simple map[string]float64 for broadcasting
+		indicators := make(map[string]float64)
+		for key, indicator := range indicatorMap {
+			if indicator != nil && indicator.Value != nil {
+				indicators[key] = *indicator.Value
+			}
+		}
+
+		// Broadcast the indicators
+		w.handler.BroadcastTechnicalIndicatorUpdate(symbol, indicators)
+
+		// Check for pullback signals
+		signal, err := w.pullbackEntryService.AnalyzePullbackEntry(ctx, symbol, timeframe)
+		if err != nil {
+			w.logger.WithError(err).WithFields(logrus.Fields{
+				"symbol":    symbol,
+				"timeframe": timeframe,
+			}).Error("Failed to analyze pullback entry")
+			continue
+		}
+
+		if signal != nil {
+			// Convert PullbackEntry to map for broadcasting
+			signalData := map[string]interface{}{
+				"signal":        signal.Signal,
+				"confidence":    signal.Confidence,
+				"entry_price":   signal.EntryPrice,
+				"stop_loss":     signal.StopLoss,
+				"take_profit_1": signal.TakeProfit1,
+				"take_profit_2": signal.TakeProfit2,
+				"rsi":           signal.RSI,
+				"ema_trend":     signal.EMATrend,
+				"supertrend":    signal.SuperTrend,
+				"timeframe":     signal.Timeframe,
+				"timestamp":     signal.Timestamp,
+			}
+			w.handler.BroadcastPullbackSignal(symbol, signalData)
+		}
+	}
+}
+
+// broadcastMarketSummary broadcasts market summary data
+func (w *Worker) broadcastMarketSummary(ctx context.Context) {
+	// Check if anyone is subscribed to market summary
+	room := "market_summary"
+	rooms := w.hub.GetRooms()
+	if _, exists := rooms[room]; !exists {
+		return // Skip if no one is subscribed
+	}
+
+	// Create market summary (this is a simplified version)
+	summary := map[string]interface{}{
+		"total_clients": w.hub.GetConnectedClients(),
+		"active_rooms":  len(w.hub.GetRooms()),
+		"server_time":   time.Now(),
+		"market_status": "active",
+	}
+
+	// In a real implementation, you would gather actual market data
+	// like top gainers, losers, volume leaders, etc.
+
+	w.handler.BroadcastMarketSummary(summary)
+}
+
+// evaluateAlertCondition evaluates if an alert condition is met
+func (w *Worker) evaluateAlertCondition(alert *entities.Alert, currentPrice float64) bool {
+	switch alert.ConditionType {
+	case "above":
+		return currentPrice > alert.TargetValue
+	case "below":
+		return currentPrice < alert.TargetValue
+	case "equals":
+		// Allow small tolerance for floating point comparison
+		tolerance := 0.0001
+		return abs(currentPrice-alert.TargetValue) < tolerance
+	default:
+		w.logger.WithFields(logrus.Fields{
+			"alert_id":       alert.ID,
+			"condition_type": alert.ConditionType,
+		}).Warn("Unknown alert condition type")
+		return false
+	}
+}
+
+// abs returns the absolute value of a float64
+func abs(x float64) float64 {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
