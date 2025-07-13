@@ -62,40 +62,7 @@ func main() {
 	// Initialize Gin router
 	router := gin.New()
 
-	// Note: Middlewares são configurados em SetupRoutes
-
-	// Basic health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		// Check database health
-		dbHealth := dbManager.HealthCheck(c.Request.Context())
-
-		response := gin.H{
-			"status":    "ok",
-			"timestamp": time.Now().Unix(),
-			"version":   "1.0.0",
-			"database":  dbHealth,
-		}
-
-		// Return 503 if any database is unhealthy
-		if !dbManager.IsHealthy(c.Request.Context()) {
-			c.JSON(http.StatusServiceUnavailable, response)
-			return
-		}
-
-		c.JSON(http.StatusOK, response)
-	})
-
-	// Basic API info endpoint
-	router.GET("/api/info", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"name":        "PriceGuard API",
-			"version":     "1.0.0",
-			"description": "Backend API for PriceGuard cryptocurrency monitoring application",
-			"environment": cfg.App.Environment,
-		})
-	})
-
-	// Setup API routes and WebSocket
+	// Setup API routes and WebSocket (includes health endpoints)
 	routerDeps := &httphandler.RouterDependencies{
 		Config:         cfg,
 		Logger:         logger,

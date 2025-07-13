@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 )
 
@@ -98,13 +99,15 @@ type MonitoringConfig struct {
 
 // LoadConfig loads configuration from environment variables and .env file
 func LoadConfig() (*Config, error) {
+	// Load .env file explicitly
+	if err := godotenv.Load(); err != nil {
+		fmt.Printf("Warning: Unable to load .env file: %v\n", err)
+	}
+
 	// Set default configuration file
 	viper.SetConfigName(".env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("./")
-
-	// Enable reading from environment variables
 	viper.AutomaticEnv()
 
 	// Read config file (optional)
