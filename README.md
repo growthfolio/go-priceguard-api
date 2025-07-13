@@ -1,4 +1,4 @@
-# 🛡️ PriceGuard API - Sistema Avançado de Alertas de Criptomoedas
+# 🛡️ PriceGuard API - Advanced Cryptocurrency Alert System
 
 [![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com)
@@ -8,206 +8,206 @@
 [![Production Ready](https://img.shields.io/badge/Production-Ready-success.svg)]()
 [![Development Ready](https://img.shields.io/badge/Dev%20Environment-Ready-success.svg)]()
 
-Sistema backend robusto desenvolvido em Go para alertas de preços de criptomoedas em tempo real, seguindo princípios de Clean Architecture e pronto para produção.
+Robust backend system developed in Go for real-time cryptocurrency price alerts, following Clean Architecture principles and production-ready.
 
-## 🚀 Quick Start - Ambiente de Desenvolvimento
+## 🚀 Quick Start - Development Environment
 
-### ⚡ Início Rápido (2 comandos)
+### ⚡ Quick Setup (2 commands)
 
 ```bash
-# 1. Iniciar ambiente completo
+# 1. Start complete environment
 make -f Makefile.dev dev
 
-# 2. Verificar se está funcionando
+# 2. Check if everything is working
 ./scripts/check-environment.sh
 ```
 
-**🎉 Pronto! API funcionando em `http://localhost:8080`**
+**🎉 Ready! API running at `http://localhost:8080`**
 
-### 🌐 Serviços Disponíveis
+### 🌐 Available Services
 
-| Serviço | URL | Descrição |
-|---------|-----|-----------|
-| **API Principal** | `http://localhost:8080` | API REST com hot reload |
-| **Health Check** | `http://localhost:8080/health` | Monitoramento de saúde |
-| **Metrics** | `http://localhost:8080/metrics` | Métricas da aplicação |
-| **WebSocket** | `ws://localhost:8080/ws` | Conexões em tempo real |
-| **PostgreSQL** | `localhost:5432` | Banco de dados principal |
-| **Redis** | `localhost:6379` | Cache e sessões |
-| **Adminer** | `http://localhost:8081` | Interface web PostgreSQL |
-| **Redis Commander** | `http://localhost:8082` | Interface web Redis |
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Main API** | `http://localhost:8080` | REST API with hot reload |
+| **Health Check** | `http://localhost:8080/health` | Health monitoring |
+| **Metrics** | `http://localhost:8080/metrics` | Application metrics |
+| **WebSocket** | `ws://localhost:8080/ws` | Real-time connections |
+| **PostgreSQL** | `localhost:5432` | Main database |
+| **Redis** | `localhost:6379` | Cache and sessions |
+| **Adminer** | `http://localhost:8081` | PostgreSQL web interface |
+| **Redis Commander** | `http://localhost:8082` | Redis web interface |
 
-### 🔧 Comandos de Desenvolvimento
+### 🔧 Development Commands
 
 ```bash
-# Ver todos os comandos disponíveis
+# View all available commands
 make -f Makefile.dev help
 
-# Gerenciamento do ambiente
-make -f Makefile.dev dev         # Iniciar ambiente completo (limpa + constrói + executa)
-make -f Makefile.dev start       # Iniciar sem rebuild
-make -f Makefile.dev down        # Parar todos os serviços
-make -f Makefile.dev clean       # Limpar completamente (containers, volumes, imagens)
+# Environment management
+make -f Makefile.dev dev         # Start complete environment (clean + build + run)
+make -f Makefile.dev start       # Start without rebuild
+make -f Makefile.dev down        # Stop all services
+make -f Makefile.dev clean       # Clean completely (containers, volumes, images)
 
-# Logs e monitoramento
-make -f Makefile.dev logs        # Ver logs de todos os serviços
-make -f Makefile.dev logs-api    # Ver apenas logs da API
-make -f Makefile.dev status      # Status dos containers
+# Logs and monitoring
+make -f Makefile.dev logs        # View logs from all services
+make -f Makefile.dev logs-api    # View API logs only
+make -f Makefile.dev status      # Container status
 
-# Acesso aos containers
-make -f Makefile.dev shell       # Shell no container da API
-make -f Makefile.dev db-shell    # Shell no PostgreSQL
-make -f Makefile.dev redis-shell # Shell no Redis
+# Container access
+make -f Makefile.dev shell       # Shell in API container
+make -f Makefile.dev db-shell    # Shell in PostgreSQL
+make -f Makefile.dev redis-shell # Shell in Redis
 
-# Testes e qualidade
-make -f Makefile.dev test         # Executar testes
-make -f Makefile.dev test-verbose # Testes com output detalhado
+# Testing and quality
+make -f Makefile.dev test         # Run tests
+make -f Makefile.dev test-verbose # Tests with detailed output
 
-# Utilitários
-make -f Makefile.dev restart     # Reiniciar todos os serviços
-make -f Makefile.dev restart-api # Reiniciar apenas a API
-make -f Makefile.dev health      # Verificar saúde dos serviços
-make -f Makefile.dev backup-db   # Backup do banco
+# Utilities
+make -f Makefile.dev restart     # Restart all services
+make -f Makefile.dev restart-api # Restart API only
+make -f Makefile.dev health      # Check service health
+make -f Makefile.dev backup-db   # Database backup
 ```
 
-### 📋 Requisitos do Sistema
+### 📋 System Requirements
 
 - **Docker** 20.10+
 - **Docker Compose** 2.0+
 - **Git** 2.30+
 - **Make** 4.0+
-- **curl** e **jq** (para scripts de verificação)
+- **curl** and **jq** (for verification scripts)
 
-## 🛠️ Status do Projeto
+## 🛠️ Project Status
 
-**🎉 PROJETO 100% FINALIZADO - AMBIENTE DE DESENVOLVIMENTO COMPLETO**
+**🎉 PROJECT 100% COMPLETE - FULL DEVELOPMENT ENVIRONMENT READY**
 
-### ✅ Funcionalidades Implementadas
+### ✅ Implemented Features
 
-- **💡 Sistema de Alertas Avançado**: Múltiplas condições, indicadores técnicos e processamento em tempo real
-- **⚡ APIs RESTful Completas**: 15+ endpoints implementados, testados e documentados
-- **🔌 WebSocket Real-time**: Comunicação bidirecional para alertas, preços e notificações
-- **🔐 Autenticação OAuth 2.0**: Google Authentication com JWT e refresh tokens
-- **🔔 Sistema de Notificações**: Múltiplos canais com fila Redis e retry automático
-- **🤖 Motor de Alertas**: Avaliação automática com indicadores técnicos (RSI, EMA, SuperTrend, MACD)
-- **📊 Análise Técnica**: Bollinger Bands, médias móveis e 10+ indicadores
-- **🧪 Testes Abrangentes**: 85%+ cobertura (unitários + integração + performance)
-- **📖 Documentação Completa**: 60+ páginas técnicas + OpenAPI 3.0 + guias de deployment
-- **🚀 Deploy Production-Ready**: Kubernetes, Docker, CI/CD, monitoramento e backup automático
-- **⚡ Performance Otimizada**: Cache em camadas, connection pooling e benchmarks avançados
-- **🛡️ Segurança Enterprise**: Network policies, rate limiting, SSL/TLS e disaster recovery
+- **💡 Advanced Alert System**: Multiple conditions, technical indicators and real-time processing
+- **⚡ Complete RESTful APIs**: 15+ endpoints implemented, tested and documented
+- **🔌 Real-time WebSocket**: Bidirectional communication for alerts, prices and notifications
+- **🔐 OAuth 2.0 Authentication**: Google Authentication with JWT and refresh tokens
+- **🔔 Notification System**: Multiple channels with Redis queue and automatic retry
+- **🤖 Alert Engine**: Automatic evaluation with technical indicators (RSI, EMA, SuperTrend, MACD)
+- **📊 Technical Analysis**: Bollinger Bands, moving averages and 10+ indicators
+- **🧪 Comprehensive Testing**: 85%+ coverage (unit + integration + performance)
+- **📖 Complete Documentation**: 60+ technical pages + OpenAPI 3.0 + deployment guides
+- **🚀 Production-Ready Deploy**: Kubernetes, Docker, CI/CD, monitoring and automatic backup
+- **⚡ Optimized Performance**: Multi-layer cache, connection pooling and advanced benchmarks
+- **🛡️ Enterprise Security**: Network policies, rate limiting, SSL/TLS and disaster recovery
 
-## 📈 Progresso de Desenvolvimento
+## 📈 Development Progress
 
-| Fase | Status | Descrição | Completude |
-|------|--------|-----------|------------|
-| 1-10 | ✅ | Estrutura, APIs, WebSocket, Auth, Infraestrutura | 100% |
-| **11** | ✅ | **Testes Unitários** | 100% |
-| **12** | ✅ | **Testes de Integração** | 100% |
-| **13** | ✅ | **Documentação Técnica** | 100% |
-| **14** | ✅ | **Otimização e Performance** | 100% |
-| **15** | ✅ | **Deployment e Produção** | 100% |
+| Phase | Status | Description | Completion |
+|-------|--------|-------------|------------|
+| 1-10 | ✅ | Structure, APIs, WebSocket, Auth, Infrastructure | 100% |
+| **11** | ✅ | **Unit Tests** | 100% |
+| **12** | ✅ | **Integration Tests** | 100% |
+| **13** | ✅ | **Technical Documentation** | 100% |
+| **14** | ✅ | **Optimization and Performance** | 100% |
+| **15** | ✅ | **Deployment and Production** | 100% |
 
-**🎯 Todas as 15 fases do desenvolvimento foram concluídas com sucesso!**
+**🎯 All 15 development phases completed successfully!**
 
-> 📋 [Ver checklist completo](./DEVELOPMENT_CHECKLIST_UPDATED.md)
+> 📋 [View complete checklist](./DEVELOPMENT_CHECKLIST_UPDATED.md)
 
-## 🛠️ Stack Tecnológica
+## 🛠️ Technology Stack
 
 ### Backend Core
-- **Go 1.21+** - Linguagem principal
-- **Gin Framework** - Framework HTTP
-- **GORM** - ORM para PostgreSQL
-- **Gorilla WebSocket** - Comunicação real-time
+- **Go 1.24+** - Main language
+- **Gin Framework** - HTTP framework
+- **GORM** - PostgreSQL ORM
+- **Gorilla WebSocket** - Real-time communication
 
-### Banco de Dados
-- **PostgreSQL** - Banco principal
-- **Redis** - Cache e filas de notificação
+### Database
+- **PostgreSQL** - Main database
+- **Redis** - Cache and notification queues
 
-### Autenticação & Segurança
-- **Google OAuth 2.0** - Autenticação social
-- **JWT** - Tokens de acesso
-- **bcrypt** - Hash de senhas
+### Authentication & Security
+- **Google OAuth 2.0** - Social authentication
+- **JWT** - Access tokens
+- **bcrypt** - Password hashing
 
-### APIs Externas
-- **Binance API** - Dados de criptomoedas
-- **SendGrid** - Envio de s
+### External APIs
+- **Binance API** - Cryptocurrency data
+- **SendGrid** - Email sending
 
-### DevOps & Ferramentas
-- **Docker & Kubernetes** - Containerização e orquestração
-- **GitHub Actions** - CI/CD pipeline automatizado
-- **Prometheus + Grafana** - Monitoramento e métricas
-- **Nginx** - Load balancing e reverse proxy
-- **Air** - Live reload para desenvolvimento
-- **Testify** - Framework de testes
+### DevOps & Tools
+- **Docker & Kubernetes** - Containerization and orchestration
+- **GitHub Actions** - Automated CI/CD pipeline
+- **Prometheus + Grafana** - Monitoring and metrics
+- **Nginx** - Load balancing and reverse proxy
+- **Air** - Live reload for development
+- **Testify** - Testing framework
 
-## 🏗️ Arquitetura
+## 🏗️ Architecture
 
 ```
 go-priceguard-api/
 ├── cmd/
-│   └── server/              # Ponto de entrada da aplicação
+│   └── server/              # Application entry point
 ├── internal/
-│   ├── adapters/           # Camada de adaptadores
-│   │   ├── http/           # Handlers HTTP e middlewares
+│   ├── adapters/           # Adapter layer
+│   │   ├── http/           # HTTP handlers and middlewares
 │   │   ├── websocket/      # WebSocket handlers
-│   │   └── repository/     # Implementações de repositório
-│   ├── application/        # Serviços de aplicação
-│   │   └── services/       # Lógica de negócio
-│   ├── domain/             # Domínio e regras de negócio
-│   │   ├── entities/       # Entidades de domínio
-│   │   └── repositories/   # Interfaces de repositório
-│   └── infrastructure/     # Infraestrutura
-│       ├── database/       # Configuração de banco
-│       ├── external/       # APIs externas
-│       └── config/         # Configurações
-├── tests/                  # Testes (unitários, integração, performance, benchmarks)
+│   │   └── repository/     # Repository implementations
+│   ├── application/        # Application services
+│   │   └── services/       # Business logic
+│   ├── domain/             # Domain and business rules
+│   │   ├── entities/       # Domain entities
+│   │   └── repositories/   # Repository interfaces
+│   └── infrastructure/     # Infrastructure
+│       ├── database/       # Database configuration
+│       ├── external/       # External APIs
+│       └── config/         # Configurations
+├── tests/                  # Tests (unit, integration, performance, benchmarks)
 ├── k8s/                    # Kubernetes manifests (deployment, services, monitoring)
 ├── monitoring/             # Prometheus, Grafana, alerting rules
-├── scripts/                # Scripts de backup, recovery e deployment
-├── nginx/                  # Configuração de load balancer
-└── docs/                   # Documentação técnica completa
+├── scripts/                # Backup, recovery and deployment scripts
+├── nginx/                  # Load balancer configuration
+└── docs/                   # Complete technical documentation
 ```
 
-### Princípios Arquiteturais
-- **Clean Architecture** - Separação clara de responsabilidades
-- **SOLID Principles** - Design orientado a princípios
-- **Repository Pattern** - Abstração de dados
-- **Dependency Injection** - Inversão de dependências
+### Architectural Principles
+- **Clean Architecture** - Clear separation of responsibilities
+- **SOLID Principles** - Principle-oriented design
+- **Repository Pattern** - Data abstraction
+- **Dependency Injection** - Dependency inversion
 
-## ⚡ Quick Start
+## ⚡ Installation & Setup
 
-### Pré-requisitos
-- Go 1.21+
+### Prerequisites
+- Go 1.24+
 - PostgreSQL 12+
 - Redis 6+
-- Docker & Docker Compose (opcional)
+- Docker & Docker Compose (recommended)
 
-### Instalação
+### Installation
 
 ```bash
-# 1. Clone o repositório
+# 1. Clone the repository
 git clone https://github.com/growthfolio/go-priceguard-api.git
 cd go-priceguard-api
 
-# 2. Configure as variáveis de ambiente
+# 2. Configure environment variables
 cp .env.example .env
-# Edite .env com suas configurações
+# Edit .env with your configurations
 
-# 3. Instale as dependências
+# 3. Install dependencies
 go mod download
 
-# 4. Execute com Docker Compose (recomendado)
-make docker-up
+# 4. Run with Docker Compose (recommended)
+make -f Makefile.dev dev
 
-# OU execute localmente
+# OR run locally
 make run
 
-# Para produção
+# For production
 make deploy-prod
 ```
 
-### Configuração
+### Configuration
 
 ```env
 # Database
@@ -232,109 +232,109 @@ BINANCE_SECRET_KEY=your_secret_key
 
 ## 📚 API Documentation
 
-### Principais Endpoints
+### Main Endpoints
 
-#### Alertas
+#### Alerts
 ```http
-GET    /api/v1/alerts           # Listar alertas do usuário
-POST   /api/v1/alerts           # Criar novo alerta
-GET    /api/v1/alerts/:id       # Obter alerta específico
-PUT    /api/v1/alerts/:id       # Atualizar alerta
-DELETE /api/v1/alerts/:id       # Deletar alerta
+GET    /api/v1/alerts           # List user alerts
+POST   /api/v1/alerts           # Create new alert
+GET    /api/v1/alerts/:id       # Get specific alert
+PUT    /api/v1/alerts/:id       # Update alert
+DELETE /api/v1/alerts/:id       # Delete alert
 ```
 
-#### Notificações
+#### Notifications
 ```http
-GET    /api/v1/notifications    # Listar notificações
-PUT    /api/v1/notifications/:id # Marcar como lida
+GET    /api/v1/notifications    # List notifications
+PUT    /api/v1/notifications/:id # Mark as read
 ```
 
-#### Criptomoedas
+#### Cryptocurrencies
 ```http
-GET    /api/v1/crypto/list       # Listar criptomoedas
-GET    /api/v1/crypto/:symbol/price # Preço atual
+GET    /api/v1/crypto/list       # List cryptocurrencies
+GET    /api/v1/crypto/:symbol/price # Current price
 ```
 
 ### WebSocket Endpoints
 ```
-/ws/alerts        # Alertas em tempo real
-/ws/prices        # Preços em tempo real
-/ws/notifications # Notificações em tempo real
+/ws/alerts        # Real-time alerts
+/ws/prices        # Real-time prices
+/ws/notifications # Real-time notifications
 ```
 
-### Documentação Completa
-- 📖 [Documentação Técnica](./docs/TECHNICAL_DOCUMENTATION.md)
-- 🔗 [Especificação OpenAPI](./docs/api-spec.yaml)
+### Complete Documentation
+- 📖 [Technical Documentation](./docs/TECHNICAL_DOCUMENTATION.md)
+- 🔗 [OpenAPI Specification](./docs/api-spec.yaml)
 - 🧪 [Swagger UI](http://localhost:8080/docs)
 
-## 🧪 Testes
+## 🧪 Testing
 
-### Executar Testes
+### Run Tests
 
 ```bash
-# Testes unitários
+# Unit tests
 make test-unit
 
-# Testes de integração
+# Integration tests
 make test-integration
 
-# Testes de performance
+# Performance tests
 make test-performance
 
-# Cobertura de testes
+# Test coverage
 make test-coverage
 ```
 
-### Cobertura Atual
-- **Entidades**: 100% (7/7 arquivos)
-- **Serviços**: 100% (3/3 arquivos)
-- **Repositórios**: 100% (2/2 arquivos)
-- **Handlers**: 100% (1/1 arquivo)
-- **Cobertura Geral**: 85%+
+### Current Coverage
+- **Entities**: 100% (7/7 files)
+- **Services**: 100% (3/3 files)
+- **Repositories**: 100% (2/2 files)
+- **Handlers**: 100% (1/1 file)
+- **Overall Coverage**: 85%+
 
-### Tipos de Testes Implementados
-- ✅ **Testes Unitários**: 38 arquivos de teste
-- ✅ **Testes de Integração**: API HTTP, WebSocket, Database, Migration
-- ✅ **Benchmarks**: Performance de alertas, cache, database, concorrência
-- ✅ **Testes de Carga**: 10k+ conexões WebSocket simultâneas
+### Implemented Test Types
+- ✅ **Unit Tests**: 38 test files
+- ✅ **Integration Tests**: HTTP API, WebSocket, Database, Migration
+- ✅ **Benchmarks**: Alert performance, cache, database, concurrency
+- ✅ **Load Tests**: 10k+ simultaneous WebSocket connections
 
 ## 🚀 Deployment
 
 ### Docker
 
 ```bash
-# Build da imagem
+# Build image
 docker build -t priceguard-api .
 
-# Executar container
+# Run container
 docker run -p 8080:8080 priceguard-api
 
-# Docker Compose completo
+# Complete Docker Compose
 docker-compose up -d
 ```
 
 ### Kubernetes
 
 ```bash
-# Deploy no Kubernetes
+# Deploy to Kubernetes
 kubectl apply -f k8s/
 
-# Verificar status dos pods
+# Check pod status
 kubectl get pods -n priceguard
 
-# Verificar serviços
+# Check services
 kubectl get svc -n priceguard
 
-# Logs da aplicação
+# Application logs
 kubectl logs -f deployment/priceguard-api -n priceguard
 ```
 
-### Produção
+### Production
 ```bash
-# Deploy completo em produção
+# Complete production deployment
 make deploy-production
 
-# Backup do banco de dados
+# Database backup
 ./scripts/backup-database.sh production
 
 # Disaster recovery
@@ -343,103 +343,103 @@ make deploy-production
 
 ## 📊 Performance
 
-### Métricas Atingidas
-- **Latência de API**: < 50ms (95th percentile)
-- **Alertas por Minuto**: > 1000
-- **Conexões WebSocket**: > 10k simultâneas
+### Achieved Metrics
+- **API Latency**: < 50ms (95th percentile)
+- **Alerts per Minute**: > 1000
+- **WebSocket Connections**: > 10k simultaneous
 - **Throughput**: > 2000 req/s
 - **Uptime**: > 99.9%
 - **Cache Hit Ratio**: > 95%
 
-### Otimizações Implementadas
-- Connection pooling otimizado (PostgreSQL e Redis)
-- Índices de banco de dados configurados
-- Cache em camadas L1 (Memory) + L2 (Redis)
-- Processamento assíncrono com workers
-- Rate limiting inteligente por usuário
-- Circuit breaker para fault tolerance
-- Garbage collection otimizado
+### Implemented Optimizations
+- Optimized connection pooling (PostgreSQL and Redis)
+- Configured database indexes
+- Multi-layer cache L1 (Memory) + L2 (Redis)
+- Asynchronous processing with workers
+- Intelligent rate limiting per user
+- Circuit breaker for fault tolerance
+- Optimized garbage collection
 
-## 🔒 Segurança
+## 🔒 Security
 
-### Medidas Implementadas
-- **HTTPS obrigatório** em produção
-- **CORS configurado** adequadamente
-- **Rate limiting** por usuário e endpoint
-- **Validação de entrada** em todos os endpoints
-- **SQL injection** - proteção via GORM
-- **XSS protection** - sanitização de dados
-- **Security headers** - configuração completa
-- **Network Policies** - isolamento no Kubernetes
+### Implemented Measures
+- **HTTPS mandatory** in production
+- **CORS properly configured**
+- **Rate limiting** per user and endpoint
+- **Input validation** on all endpoints
+- **SQL injection** - protection via GORM
+- **XSS protection** - data sanitization
+- **Security headers** - complete configuration
+- **Network Policies** - Kubernetes isolation
 - **Secrets management** - Kubernetes secrets
-- **SSL/TLS termination** - certificados automáticos
+- **SSL/TLS termination** - automatic certificates
 
-## 🤝 Contribuição
+## 🤝 Contributing
 
-### Como Contribuir
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+### How to Contribute
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ### Guidelines
-- Seguir os padrões de código Go
-- Manter cobertura de testes > 80%
-- Documentar APIs e funções públicas
-- Usar Conventional Commits
+- Follow Go code standards
+- Maintain test coverage > 80%
+- Document APIs and public functions
+- Use Conventional Commits
 
 ## 📝 Roadmap
 
-### Funcionalidades Futuras
-- [ ] **Mobile App** - App nativo para iOS e Android
-- [ ] **Dashboard Web** - Interface web completa
-- [ ] **Alertas com IA** - Machine learning para predições
-- [ ] **Social Trading** - Compartilhamento de alertas
-- [ ] **Múltiplas Exchanges** - Binance, Coinbase, Kraken
-- [ ] **Alertas por Notícias** - Integração com feeds de notícias
-- [ ] **Portfolio Tracking** - Acompanhamento de carteiras
-- [ ] **Copy Trading** - Espelhamento de estratégias
+### Future Features
+- [ ] **Mobile App** - Native iOS and Android app
+- [ ] **Web Dashboard** - Complete web interface
+- [ ] **AI Alerts** - Machine learning for predictions
+- [ ] **Social Trading** - Alert sharing
+- [ ] **Multiple Exchanges** - Binance, Coinbase, Kraken
+- [ ] **News Alerts** - News feed integration
+- [ ] **Portfolio Tracking** - Wallet monitoring
+- [ ] **Copy Trading** - Strategy mirroring
 
-### Melhorias Técnicas
-- [ ] **Microserviços** - Arquitetura distribuída
-- [ ] **Event Sourcing** - Auditoria completa
-- [ ] **GraphQL** - API alternativa
-- [ ] **Service Mesh** - Istio para microserviços
-- [ ] **Multi-region** - Deploy em múltiplas regiões
+### Technical Improvements
+- [ ] **Microservices** - Distributed architecture
+- [ ] **Event Sourcing** - Complete auditing
+- [ ] **GraphQL** - Alternative API
+- [ ] **Service Mesh** - Istio for microservices
+- [ ] **Multi-region** - Multi-region deployment
 - [ ] **Blockchain Integration** - DeFi protocols
 
-## 📞 Suporte
+## 📞 Support
 
-### Contatos
+### Contacts
 - **Email**: contato.dev.macedo@gmail.com
 - **GitHub**: [PriceGuard API Repository](https://github.com/growthfolio/go-priceguard-api)
-- **Issues**: [Reportar bugs](https://github.com/growthfolio/go-priceguard-api/issues)
+- **Issues**: [Report bugs](https://github.com/growthfolio/go-priceguard-api/issues)
 - **LinkedIn**: [Felipe Macedo](https://linkedin.com/in/felipemacedo1)
 
-### Documentação Adicional
-  🔧 Implementando
-<!-- - [🔧 Guia de Configuração](./docs/TECHNICAL_DOCUMENTATION.md)
+### Additional Documentation
+  🔧 Implementing
+<!-- - [🔧 Configuration Guide](./docs/TECHNICAL_DOCUMENTATION.md)
 - [🐛 Troubleshooting](./docs/TROUBLESHOOTING.md)
 - [🔄 Changelog](./CHANGELOG.md)
 - [📊 Performance Benchmarks](./tests/benchmark/)
 - [🚀 Deployment Guide](./k8s/README.md) -->
 
-## 📄 Licença
+## 📄 License
 
-Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-**Desenvolvido por Felipe Macedo**
+**Developed by Felipe Macedo**
 
-*Sistema backend enterprise-grade, pronto para produção e escalabilidade global.*
+*Enterprise-grade backend system, production-ready and globally scalable.*
 
-## 🏆 Características do Projeto
+## 🏆 Project Highlights
 
-**✅ Production-Ready**: Sistema completo com todas as funcionalidades implementadas  
-**🧪 100% Testado**: Cobertura de testes unitários e de integração abrangente  
-**📚 Documentado**: Documentação técnica completa e especificação OpenAPI  
-**🚀 Escalável**: Arquitetura preparada para milhares de usuários simultâneos  
-**🔒 Seguro**: Implementação enterprise-grade de segurança  
-**⚡ Performático**: Otimizado para baixa latência e alto throughput
+**✅ Production-Ready**: Complete system with all features implemented  
+**🧪 100% Tested**: Comprehensive unit and integration test coverage  
+**📚 Documented**: Complete technical documentation and OpenAPI specification  
+**🚀 Scalable**: Architecture prepared for thousands of simultaneous users  
+**🔒 Secure**: Enterprise-grade security implementation  
+**⚡ High-Performance**: Optimized for low latency and high throughput
