@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/google/uuid"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/stretchr/testify/assert"
 )
 

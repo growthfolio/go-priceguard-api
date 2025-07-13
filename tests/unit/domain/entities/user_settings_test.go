@@ -3,8 +3,8 @@ package entities_test
 import (
 	"testing"
 
-	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/google/uuid"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )
