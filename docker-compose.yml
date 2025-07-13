@@ -15,10 +15,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U postgres -d priceguard"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - priceguard-network
 
@@ -26,15 +27,16 @@ services:
   redis:
     image: redis:7-alpine
     container_name: priceguard-redis
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      interval: 10s
+      timeout: 3s
+      retries: 5
     networks:
       - priceguard-network
 
@@ -48,19 +50,53 @@ services:
       - "8080:8080"
     environment:
       - PORT=8080
+      - HOST=localhost
       - GIN_MODE=debug
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=password
       - DB_NAME=priceguard
+      - DB_SSL_MODE=disable
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - JWT_SECRET=development_jwt_secret_change_in_production
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - JWT_SECRET=RTqoPK8f/itDxB+rMmJ4iSkreYIyUajII6ihOR9gO0E=
+      - JWT_EXPIRATION=24h
+      - JWT_REFRESH_EXPIRATION=168h
+      - GOOGLE_CLIENT_ID=your_google_client_id
+      - GOOGLE_CLIENT_SECRET=your_google_client_secret
+      - GOOGLE_REDIRECT_URL=http://localhost:8080/auth/google/callback
+      - BINANCE_API_KEY=your_binance_api_key
+      - BINANCE_API_SECRET=your_binance_api_secret
+      - BINANCE_TESTNET=true
+      - WS_PATH=/ws/dashboard
+      - WS_UPDATE_INTERVAL=1000ms
+      - WS_MAX_CONNECTIONS=1000
       - APP_ENV=development
       - LOG_LEVEL=debug
+      - LOG_FORMAT=json
+      - LOG_OUTPUT=stdout
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=60
+      - RATE_LIMIT_BURST=10
+      - ENABLE_METRICS=true
+      - METRICS_PORT=9090
+      - ENABLE_TRACING=false
+      - ENABLE_REQUEST_LOGGING=true
+      - ENABLE_ERROR_STACK_TRACE=true
+      - NOTIFICATION_WORKERS=5
+      - NOTIFICATION_RETRY_ATTEMPTS=3
+      - NOTIFICATION_RETRY_DELAY=30s
+      - ALERT_EVALUATION_INTERVAL=30s
+      - ALERT_THROTTLE_DURATION=5m
+      - ENABLE_ALERT_WEBSOCKET_BROADCAST=true
+      - PROMETHEUS_METRICS_PATH=/prometheus
+      - ENABLE_CUSTOM_METRICS=true
     volumes:
       - .:/app
+      - /app/tmp
       - /app/bin
     depends_on:
       postgres:
@@ -69,9 +105,9 @@ services:
         condition: service_healthy
     networks:
       - priceguard-network
-    command: air
+    restart: unless-stopped
 
-  # Adminer for Database Management (Optional)
+  # Adminer for Database Management
   adminer:
     image: adminer:latest
     container_name: priceguard-adminer
@@ -79,12 +115,13 @@ services:
       - "8081:8080"
     environment:
       ADMINER_DEFAULT_SERVER: postgres
+      POSTGRES_PASSWORD: password
     depends_on:
       - postgres
     networks:
       - priceguard-network
 
-  # Redis Commander for Redis Management (Optional)
+  # Redis Commander for Redis Management
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: priceguard-redis-commander
@@ -97,12 +134,10 @@ services:
     networks:
       - priceguard-network
 
-# Networks
 networks:
   priceguard-network:
     driver: bridge
 
-# Volumes
 volumes:
   postgres_data:
     driver: local
