@@ -64,7 +64,7 @@ func (r *alertRepository) GetBySymbol(ctx context.Context, symbol string) ([]ent
 
 func (r *alertRepository) GetEnabled(ctx context.Context) ([]entities.Alert, error) {
 	var alerts []entities.Alert
-	err := r.db.WithContext(ctx).Where("is_active = ?", true).Find(&alerts).Error
+	err := r.db.WithContext(ctx).Where("enabled = ?", true).Find(&alerts).Error
 	return alerts, err
 }
 
@@ -72,8 +72,8 @@ func (r *alertRepository) MarkTriggered(ctx context.Context, id uuid.UUID) error
 	return r.db.WithContext(ctx).Model(&entities.Alert{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
-			"last_triggered": time.Now(),
-			"updated_at":     time.Now(),
+			"triggered_at": time.Now(),
+			"updated_at":   time.Now(),
 		}).Error
 }
 
