@@ -77,7 +77,13 @@ clean: ## Clean build artifacts
 	@go clean
 
 # Development mode with hot reload (requires air)
-dev: ## Run in development mode with hot reload
+dev: ## Run in development mode with hot reload via Docker Compose
+	@echo "Starting development environment..."
+	@docker-compose down -v
+	@docker-compose up --build
+
+# Local development mode (requires air to be installed locally)
+dev-local: ## Run in development mode with hot reload locally
 	@echo "Starting development server with hot reload..."
 	@air
 

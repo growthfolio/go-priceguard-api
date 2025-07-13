@@ -1,0 +1,56 @@
+# Build artifacts
+bin/
+tmp/
+*.log
+build-errors.log
+
+# Coverage reports
+coverage.out
+coverage.html
+coverage-unit.out
+
+# Development files
+.env.local
+.env.*.local
+
+# Node modules (if any)
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files (optional - keep .git for buildvcs if needed)
+testdata/
+*_test.go
+
+# Documentation generation
+docs/swagger/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Monitoring configs
+monitoring/
+k8s/
+
+# Note: .git is NOT ignored here to allow buildvcs in the future
+# If you want to disable git completely, uncomment the line below:
+# .git/
