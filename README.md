@@ -1,16 +1,86 @@
 # 🛡️ PriceGuard API - Sistema Avançado de Alertas de Criptomoedas
 
-[![Go Version](https://img.shields.io/badge/Go-1.21+-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com)
 [![Coverage](https://img.shields.io/badge/Coverage-85%25-green.svg)]()
 [![Status](https://img.shields.io/badge/Status-100%25%20Complete-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Production Ready](https://img.shields.io/badge/Production-Ready-success.svg)]()
+[![Development Ready](https://img.shields.io/badge/Dev%20Environment-Ready-success.svg)]()
 
 Sistema backend robusto desenvolvido em Go para alertas de preços de criptomoedas em tempo real, seguindo princípios de Clean Architecture e pronto para produção.
 
-## 🚀 Status do Projeto
+## 🚀 Quick Start - Ambiente de Desenvolvimento
 
-**🎉 PROJETO 100% FINALIZADO - PRONTO PARA PRODUÇÃO**
+### ⚡ Início Rápido (2 comandos)
+
+```bash
+# 1. Iniciar ambiente completo
+make -f Makefile.dev dev
+
+# 2. Verificar se está funcionando
+./scripts/check-environment.sh
+```
+
+**🎉 Pronto! API funcionando em `http://localhost:8080`**
+
+### 🌐 Serviços Disponíveis
+
+| Serviço | URL | Descrição |
+|---------|-----|-----------|
+| **API Principal** | `http://localhost:8080` | API REST com hot reload |
+| **Health Check** | `http://localhost:8080/health` | Monitoramento de saúde |
+| **Metrics** | `http://localhost:8080/metrics` | Métricas da aplicação |
+| **WebSocket** | `ws://localhost:8080/ws` | Conexões em tempo real |
+| **PostgreSQL** | `localhost:5432` | Banco de dados principal |
+| **Redis** | `localhost:6379` | Cache e sessões |
+| **Adminer** | `http://localhost:8081` | Interface web PostgreSQL |
+| **Redis Commander** | `http://localhost:8082` | Interface web Redis |
+
+### 🔧 Comandos de Desenvolvimento
+
+```bash
+# Ver todos os comandos disponíveis
+make -f Makefile.dev help
+
+# Gerenciamento do ambiente
+make -f Makefile.dev dev         # Iniciar ambiente completo (limpa + constrói + executa)
+make -f Makefile.dev start       # Iniciar sem rebuild
+make -f Makefile.dev down        # Parar todos os serviços
+make -f Makefile.dev clean       # Limpar completamente (containers, volumes, imagens)
+
+# Logs e monitoramento
+make -f Makefile.dev logs        # Ver logs de todos os serviços
+make -f Makefile.dev logs-api    # Ver apenas logs da API
+make -f Makefile.dev status      # Status dos containers
+
+# Acesso aos containers
+make -f Makefile.dev shell       # Shell no container da API
+make -f Makefile.dev db-shell    # Shell no PostgreSQL
+make -f Makefile.dev redis-shell # Shell no Redis
+
+# Testes e qualidade
+make -f Makefile.dev test         # Executar testes
+make -f Makefile.dev test-verbose # Testes com output detalhado
+
+# Utilitários
+make -f Makefile.dev restart     # Reiniciar todos os serviços
+make -f Makefile.dev restart-api # Reiniciar apenas a API
+make -f Makefile.dev health      # Verificar saúde dos serviços
+make -f Makefile.dev backup-db   # Backup do banco
+```
+
+### 📋 Requisitos do Sistema
+
+- **Docker** 20.10+
+- **Docker Compose** 2.0+
+- **Git** 2.30+
+- **Make** 4.0+
+- **curl** e **jq** (para scripts de verificação)
+
+## 🛠️ Status do Projeto
+
+**🎉 PROJETO 100% FINALIZADO - AMBIENTE DE DESENVOLVIMENTO COMPLETO**
 
 ### ✅ Funcionalidades Implementadas
 
