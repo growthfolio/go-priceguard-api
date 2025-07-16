@@ -8,10 +8,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/growthfolio/go-priceguard-api/internal/adapters/http/handlers"
-	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/growthfolio/go-priceguard-api/internal/adapters/http/handlers"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -64,15 +64,15 @@ func (m *MockAlertRepository) MarkTriggered(ctx context.Context, id uuid.UUID) e
 	return args.Error(0)
 }
 
-func (m *MockAlertRepository) GetBySymbol(ctx context.Context, symbol string) ([]entities.Alert, error) {
-	args := m.Called(ctx, symbol)
-	return args.Get(0).([]entities.Alert), args.Error(1)
-}
+// func (m *MockAlertRepository) GetBySymbol(ctx context.Context, symbol string) ([]entities.Alert, error) {
+// 	args := m.Called(ctx, symbol)
+// 	return args.Get(0).([]entities.Alert), args.Error(1)
+// }
 
-func (m *MockAlertRepository) MarkTriggered(ctx context.Context, id uuid.UUID) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
+// func (m *MockAlertRepository) MarkTriggered(ctx context.Context, id uuid.UUID) error {
+// 	args := m.Called(ctx, id)
+// 	return args.Error(0)
+// }
 
 func TestAlertHandler_Creation(t *testing.T) {
 	// Setup mock

@@ -70,7 +70,27 @@ make -f Makefile.dev health      # Check service health
 make -f Makefile.dev backup-db   # Database backup
 ```
 
-### 📋 System Requirements
+### � Database Recovery
+
+If you encounter database issues or lost tables after Docker volume removal:
+
+```bash
+# 1. Ensure environment is running
+make -f Makefile.dev start
+
+# 2. Install migration tools
+make install-tools
+
+# 3. Run database migrations to recreate schema
+make migrate-up
+
+# 4. Verify database health
+./scripts/check-environment.sh
+```
+
+**📖 For detailed recovery procedures, see [Database Recovery Guide](./docs/DATABASE_RECOVERY_GUIDE.md)**
+
+### �📋 System Requirements
 
 - **Docker** 20.10+
 - **Docker Compose** 2.0+
@@ -266,6 +286,10 @@ GET    /api/v1/crypto/:symbol/price # Current price
 - 📖 [Technical Documentation](./docs/TECHNICAL_DOCUMENTATION.md)
 - 🔗 [OpenAPI Specification](./docs/api-spec.yaml)
 - 🧪 [Swagger UI](http://localhost:8080/docs)
+- 🗄️ [Database Recovery Guide](./docs/DATABASE_RECOVERY_GUIDE.md)
+- 🧪 [API Testing Guide](./docs/HOW_TO_TEST_API.md)
+- 📋 [Postman Testing Guide](./docs/POSTMAN_TESTING_GUIDE.md)
+- 🌐 [Web Interface Specification](./docs/WEB_INTERFACE_SPECIFICATION.md)
 
 ## 🧪 Testing
 

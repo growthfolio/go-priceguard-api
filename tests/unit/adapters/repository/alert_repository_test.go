@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/growthfolio/go-priceguard-api/internal/adapters/repository"
 	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/growthfolio/go-priceguard-api/internal/domain/repositories"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/sqlite"
