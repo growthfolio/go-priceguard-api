@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/growthfolio/go-priceguard-api/internal/adapters/http/middleware"
 	"github.com/growthfolio/go-priceguard-api/internal/application/services"
-	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 
@@ -64,6 +65,14 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	result, err := h.authService.LoginWithGoogleIDToken(c.Request.Context(), req.IDToken)
 	if err != nil {
+		if strings.Contains(err.Error(), "failed to create user") {
+			h.logger.WithError(err).Error("Failed to create user during Google login")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "internal_error",
+				"message": "Failed to create user",
+			})
+			return
+		}
 		h.logger.WithError(err).Error("Login failed")
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"error":   "unauthorized",
