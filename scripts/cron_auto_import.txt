@@ -1,0 +1,13 @@
+# Cron job para automação da importação de dados de criptomoedas
+# Este arquivo deve ser incluído no crontab do usuário
+# Exemplo: crontab -e
+
+# Rodar a cada hora (ajuste o caminho conforme necessário)
+0 * * * * /home/felipe-macedo/projects/go-priceguard-api/scripts/auto_import.sh >> /home/felipe-macedo/projects/go-priceguard-api/scripts/auto_import.log 2>&1
+
+# Para ativar:
+# 1. Execute: crontab -e
+# 2. Cole a linha acima
+# 3. Salve e saia
+
+# O script será executado automaticamente a cada hora, registrando logs em auto_import.log
