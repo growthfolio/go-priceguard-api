@@ -81,11 +81,11 @@ test-verbose: ## Run tests with verbose output
 
 migrate-up: ## Run database migrations up
 	@echo "$(YELLOW)📈 Running migrations up...$(RESET)"
-	docker-compose -f docker-compose.yml exec api go run cmd/migrate/main.go up
+	docker-compose -f docker-compose.yml exec api go run db/migrations/main.go up
 
 migrate-down: ## Run database migrations down
 	@echo "$(YELLOW)📉 Running migrations down...$(RESET)"
-	docker-compose -f docker-compose.yml exec api go run cmd/migrate/main.go down
+	docker-compose -f docker-compose.yml exec api go run db/migrations/main.go down
 
 migrate-status: ## Check migration status
 	@echo "$(YELLOW)📊 Checking migration status...$(RESET)"
