@@ -61,6 +61,11 @@ type CryptoCurrency struct {
 	TechIndicators []TechnicalIndicator `json:"tech_indicators,omitempty" gorm:"foreignKey:Symbol;references:Symbol"`
 }
 
+// TableName overrides the table name used by CryptoCurrency to `cryptocurrencies`
+func (CryptoCurrency) TableName() string {
+	return "cryptocurrencies"
+}
+
 // Alert represents a user alert
 type Alert struct {
 	ID            uuid.UUID      `json:"id" gorm:"type:uuid;primary_key;default:uuid_generate_v4()"`
@@ -109,6 +114,11 @@ type PriceHistory struct {
 	Volume     float64   `json:"volume" gorm:"type:decimal(30,8);not null"`
 	Timestamp  time.Time `json:"timestamp" gorm:"not null;index;uniqueIndex:idx_unique_price"`
 	CreatedAt  time.Time `json:"created_at" gorm:"default:CURRENT_TIMESTAMP"`
+}
+
+// TableName overrides the table name used by PriceHistory to `price_history`
+func (PriceHistory) TableName() string {
+	return "price_history"
 }
 
 // TechnicalIndicator represents cached technical indicators
