@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/growthfolio/go-priceguard-api/internal/domain/repositories"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -59,7 +59,7 @@ func (r *UserRepositoryImpl) GetByGoogleID(ctx context.Context, googleID string)
 	var user entities.User
 	if err := r.db.WithContext(ctx).Where("google_id = ?", googleID).First(&user).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("user not found")
+			return nil, err // Retorna o erro original para ser tratado corretamente
 		}
 		return nil, fmt.Errorf("failed to get user by Google ID: %w", err)
 	}
