@@ -2,6 +2,9 @@ package http
 
 import (
 	"context"
+	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -12,6 +15,7 @@ import (
 	"github.com/growthfolio/go-priceguard-api/internal/adapters/repository"
 	"github.com/growthfolio/go-priceguard-api/internal/adapters/websocket"
 	appservices "github.com/growthfolio/go-priceguard-api/internal/application/services"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	domainservices "github.com/growthfolio/go-priceguard-api/internal/domain/services"
 	"github.com/growthfolio/go-priceguard-api/internal/infrastructure"
 	"github.com/growthfolio/go-priceguard-api/internal/infrastructure/config"
@@ -173,6 +177,167 @@ func SetupRoutes(router *gin.Engine, deps *RouterDependencies) *WebSocketManager
 
 	// Health check routes (no auth required)
 	setupHealthRoutes(router, healthHandler, metricsHandler)
+
+	// Public test routes for Binance integration
+	publicTest := router.Group("/test")
+	{
+		publicTest.GET("/binance/ping", func(c *gin.Context) {
+			// Test Binance connectivity
+			ticker, err := binanceClient.GetTickerPrice(c.Request.Context(), "BTCUSDT")
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error":   "Failed to connect to Binance",
+					"details": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"status":    "success",
+				"message":   "Binance connection OK",
+				"btc_price": ticker.Price,
+				"timestamp": time.Now().UTC(),
+			})
+		})
+
+		publicTest.GET("/binance/symbols", func(c *gin.Context) {
+			// Test getting exchange info
+			cryptos, err := cryptoRepo.GetActive(c.Request.Context(), 10, 0)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error":   "Failed to get cryptocurrencies from database",
+					"details": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"status":  "success",
+				"count":   len(cryptos),
+				"symbols": cryptos,
+			})
+		})
+
+		publicTest.GET("/crypto/live-prices", func(c *gin.Context) {
+			// Get a few symbols and their live prices from Binance
+			symbols := []string{"BTCUSDT", "ETHUSDT", "BNBUSDT", "ADAUSDT", "SOLUSDT"}
+			prices := make(map[string]interface{})
+
+			for _, symbol := range symbols {
+				ticker, err := binanceClient.GetTickerPrice(c.Request.Context(), symbol)
+				if err != nil {
+					prices[symbol] = gin.H{
+						"error":   "Failed to get price",
+						"details": err.Error(),
+					}
+					continue
+				}
+				prices[symbol] = gin.H{
+					"price":  ticker.Price,
+					"symbol": ticker.Symbol,
+				}
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"status":    "success",
+				"message":   "Live prices from Binance",
+				"data":      prices,
+				"timestamp": time.Now().UTC(),
+			})
+		})
+
+		publicTest.GET("/crypto/start-collection", func(c *gin.Context) {
+			// Test starting the crypto data collection service
+			if cryptoDataService.IsCollecting() {
+				c.JSON(http.StatusOK, gin.H{
+					"status":     "info",
+					"message":    "Crypto data collection is already running",
+					"collecting": true,
+				})
+				return
+			}
+
+			err := cryptoDataService.StartDataCollection(c.Request.Context())
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"error":   "Failed to start data collection",
+					"details": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"status":     "success",
+				"message":    "Crypto data collection started",
+				"collecting": cryptoDataService.IsCollecting(),
+			})
+		})
+
+		publicTest.GET("/crypto/collection-status", func(c *gin.Context) {
+			// Check if data collection is running
+			c.JSON(http.StatusOK, gin.H{
+				"status":     "success",
+				"collecting": cryptoDataService.IsCollecting(),
+				"message":    "Data collection status",
+			})
+		})
+
+		publicTest.GET("/crypto/collect-single", func(c *gin.Context) {
+			// Collect data for a single cryptocurrency and store it
+			symbol := c.DefaultQuery("symbol", "BTCUSDT")
+
+			// Get ticker price from Binance
+			ticker, err := binanceClient.GetTickerPrice(c.Request.Context(), symbol)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error":   "Failed to get price from Binance",
+					"details": err.Error(),
+				})
+				return
+			}
+
+			// Parse price
+			price, err := strconv.ParseFloat(ticker.Price, 64)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error":   "Failed to parse price",
+					"details": err.Error(),
+				})
+				return
+			}
+
+			// Create price history record
+			priceHistory := &entities.PriceHistory{
+				Symbol:     symbol,
+				Timeframe:  "1m",
+				Timestamp:  time.Now(),
+				OpenPrice:  price,
+				HighPrice:  price,
+				LowPrice:   price,
+				ClosePrice: price,
+				Volume:     0.0, // We don't have volume from ticker
+			}
+
+			// Store in database
+			if err := priceHistoryRepo.Create(c.Request.Context(), priceHistory); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error":   "Failed to store price data",
+					"details": err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"status":  "success",
+				"message": "Price data collected and stored",
+				"data": gin.H{
+					"symbol":    symbol,
+					"price":     price,
+					"timestamp": priceHistory.Timestamp,
+				},
+			})
+		})
+	}
 
 	// Public routes
 	publicAPI := router.Group("/api")
