@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/growthfolio/go-priceguard-api/internal/domain/services"
 	"github.com/growthfolio/go-priceguard-api/internal/infrastructure/database"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // AuthService handles authentication operations
@@ -60,20 +62,22 @@ func NewAuthService(
 
 // LoginWithGoogleIDToken authenticates a user with Google ID token
 func (a *AuthService) LoginWithGoogleIDToken(ctx context.Context, idToken string) (*LoginResult, error) {
-	// Validate Google ID token
+	a.logger.WithField("id_token", idToken).Info("Iniciando autenticação Google")
 	googleUser, err := a.googleService.ValidateIDToken(ctx, idToken)
 	if err != nil {
+		a.logger.WithError(err).Error("Falha ao validar Google ID token")
 		return nil, fmt.Errorf("invalid Google ID token: %w", err)
 	}
+	a.logger.WithField("google_id", googleUser.ID).Info("Google ID token validado com sucesso")
 
-	// Check if user exists
 	user, err := a.userRepo.GetByGoogleID(ctx, googleUser.ID)
-	if err != nil && err.Error() != "record not found" {
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		a.logger.WithError(err).Error("Erro ao buscar usuário por GoogleID")
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// Create user if doesn't exist
-	if user == nil {
+	if user == nil || errors.Is(err, gorm.ErrRecordNotFound) {
+		a.logger.WithField("google_id", googleUser.ID).Info("Usuário Google não encontrado, criando novo usuário")
 		user = &entities.User{
 			GoogleID: googleUser.ID,
 			Email:    googleUser.Email,
@@ -82,10 +86,10 @@ func (a *AuthService) LoginWithGoogleIDToken(ctx context.Context, idToken string
 		}
 
 		if err := a.userRepo.Create(ctx, user); err != nil {
+			a.logger.WithError(err).Error("Falha ao criar usuário Google")
 			return nil, fmt.Errorf("failed to create user: %w", err)
 		}
 
-		// Create default user settings
 		settings := &entities.UserSettings{
 			UserID:             user.ID,
 			Theme:              "dark",
@@ -99,24 +103,25 @@ func (a *AuthService) LoginWithGoogleIDToken(ctx context.Context, idToken string
 		}
 
 		if err := a.settingsRepo.Create(ctx, settings); err != nil {
-			a.logger.WithError(err).Error("Failed to create default user settings")
+			a.logger.WithError(err).Error("Falha ao criar configurações padrão do usuário Google")
 		}
 
-		a.logger.WithField("user_id", user.ID).Info("New user created")
+		a.logger.WithField("user_id", user.ID).Info("Novo usuário Google criado com sucesso")
 	} else {
-		// Update user info from Google
+		a.logger.WithField("user_id", user.ID).Info("Usuário Google encontrado, atualizando dados")
 		user.Name = googleUser.Name
 		user.Picture = &googleUser.Picture
 		if err := a.userRepo.Update(ctx, user); err != nil {
-			a.logger.WithError(err).Error("Failed to update user info")
+			a.logger.WithError(err).Error("Falha ao atualizar dados do usuário Google")
 		}
 	}
 
-	// Generate JWT tokens
 	accessToken, refreshToken, err := a.jwtService.GenerateTokens(user.ID, user.Email, user.Name, user.GoogleID)
 	if err != nil {
+		a.logger.WithError(err).Error("Falha ao gerar tokens JWT para usuário Google")
 		return nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
+	a.logger.WithField("user_id", user.ID).Info("Tokens JWT gerados com sucesso para usuário Google")
 
 	// Store session in database
 	tokenHash := a.jwtService.GetTokenHash(refreshToken)
