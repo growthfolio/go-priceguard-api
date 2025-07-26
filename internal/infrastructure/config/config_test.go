@@ -66,6 +66,7 @@ func TestConfigValidation(t *testing.T) {
 			name: "missing Google credentials",
 			envVars: map[string]string{
 				"JWT_SECRET": "test_secret",
+				"APP_ENV":    "production",
 			},
 			expectError: true,
 		},

@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package main
 
 import (
@@ -5,13 +8,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/growthfolio/go-priceguard-api/internal/infrastructure/database"
 	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
+	"github.com/growthfolio/go-priceguard-api/internal/infrastructure/database"
 	"gorm.io/gorm"
 )
 
-// Função para calcular EMA simples
-def calculateEMA(prices []float64, period int) float64 {
+// calculateEMA calcula uma EMA simples
+func calculateEMA(prices []float64, period int) float64 {
 	if len(prices) < period {
 		return 0
 	}
@@ -23,8 +26,8 @@ def calculateEMA(prices []float64, period int) float64 {
 	return ema
 }
 
-// Função para calcular RSI simples
-def calculateRSI(closes []float64, period int) float64 {
+// calculateRSI calcula um RSI simples
+func calculateRSI(closes []float64, period int) float64 {
 	if len(closes) < period+1 {
 		return 0
 	}
