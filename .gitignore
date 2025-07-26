@@ -12,10 +12,8 @@
 *.out
 
 # Docs and development files
-docs/
-docs/*
-DEVELOPMENT_CHECKLIST.md
-DEVELOPMENT_CHECKLIST_UPDATED.md
+# DEVELOPMENT_CHECKLIST.md
+# DEVELOPMENT_CHECKLIST_UPDATED.md
 README_UPDATED.md
 # Dependency directories (remove the comment below to include it)
 vendor/
