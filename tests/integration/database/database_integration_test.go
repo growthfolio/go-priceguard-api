@@ -174,8 +174,6 @@ func (suite *DatabaseIntegrationTestSuite) TestAlertConstraints() {
 }
 
 func (suite *DatabaseIntegrationTestSuite) TestTransactions() {
-	userRepo := repository.NewUserRepository(suite.db)
-
 	// Test transaction rollback
 	err := suite.db.Transaction(func(tx *gorm.DB) error {
 		// Create user in transaction
