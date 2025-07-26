@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/google/uuid"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/mock"
 )
@@ -294,8 +294,19 @@ func (m *MockRedisClient) Set(ctx context.Context, key string, value interface{}
 func (m *MockRedisClient) Get(ctx context.Context, key string) *redis.StringCmd {
 	args := m.Called(ctx, key)
 	cmd := redis.NewStringCmd(ctx)
-	if args.Get(0) != nil {
+	if err := args.Error(1); err != nil {
+		cmd.SetErr(err)
+	} else if args.Get(0) != nil {
 		cmd.SetVal(args.String(0))
+	}
+	return cmd
+}
+
+func (m *MockRedisClient) TTL(ctx context.Context, key string) *redis.DurationCmd {
+	args := m.Called(ctx, key)
+	cmd := redis.NewDurationCmd(ctx)
+	if args.Get(0) != nil {
+		cmd.SetVal(args.Get(0).(time.Duration))
 	}
 	return cmd
 }
