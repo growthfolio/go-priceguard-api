@@ -13,11 +13,10 @@ env:
   GO_VERSION: '1.21'
 
 jobs:
-  # Job 1: Testes e Análise de Qualidade
   test:
     name: Tests & Quality Analysis
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:15
@@ -32,7 +31,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:7-alpine
         options: >-
@@ -44,158 +43,154 @@ jobs:
           - 6379:6379
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Setup Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        cache: true
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
-    - name: Cache Go modules
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
-    - name: Install dependencies
-      run: |
-        go mod download
-        go mod verify
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod verify
 
-    - name: Run security scan
-      uses: securecodewarrior/github-action-gosec@master
-      with:
-        args: './...'
-        
-    - name: Run linting
-      uses: golangci/golangci-lint-action@v3
-      with:
-        version: latest
-        args: --timeout=5m
+      - name: Run security scan (Gosec)
+        uses: securego/gosec@v2.22.0
+        with:
+          args: '-fmt sarif -out gosec-results.sarif ./...'
 
-    - name: Run unit tests
-      run: |
-        make test-unit-coverage
-      env:
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_USER: postgres
-        DB_PASSWORD: postgres
-        DB_NAME: priceguard_test
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
-        JWT_SECRET: test-secret-key
+      - name: Upload Gosec SARIF results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: gosec-results.sarif
 
-    - name: Run integration tests
-      run: |
-        make test-integration
-      env:
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_USER: postgres
-        DB_PASSWORD: postgres
-        DB_NAME: priceguard_test
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
-        JWT_SECRET: test-secret-key
+      - name: Run linting
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          args: --timeout=5m
 
-    - name: Run performance benchmarks
-      run: |
-        make benchmark-all
-      env:
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_USER: postgres
-        DB_PASSWORD: postgres
-        DB_NAME: priceguard_test
-        REDIS_HOST: localhost
-        REDIS_PORT: 6379
+      - name: Run unit tests
+        run: make test-unit-coverage
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: priceguard_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret-key
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.out
-        flags: unittests
-        name: codecov-umbrella
+      - name: Run integration tests
+        run: make test-integration
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: priceguard_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          JWT_SECRET: test-secret-key
 
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: |
-          coverage.out
-          coverage.html
-          reports/
+      - name: Run performance benchmarks
+        run: make benchmark-all
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: priceguard_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
 
-  # Job 2: Build e Push da Imagem Docker
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            coverage.out
+            coverage.html
+            reports/
+
   build:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push'
-    
-    outputs:
-      image: ${{ steps.image.outputs.image }}
-      digest: ${{ steps.build.outputs.digest }}
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
-          type=sha,prefix={{branch}}-
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
 
-    - name: Build and push Docker image
-      id: build
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./Dockerfile
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          BUILDKIT_INLINE_CACHE=1
-          GO_VERSION=${{ env.GO_VERSION }}
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            GO_VERSION=${{ env.GO_VERSION }}
+            ENV=production
 
-    - name: Output image
-      id: image
-      run: |
-        echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}" >> $GITHUB_OUTPUT
+      - name: Output image reference
+        id: image
+        run: echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}" >> $GITHUB_OUTPUT
 
-  # Job 3: Análise de Segurança da Imagem
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
@@ -203,20 +198,19 @@ jobs:
     if: github.event_name == 'push'
 
     steps:
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: ${{ needs.build.outputs.image }}
-        format: 'sarif'
-        output: 'trivy-results.sarif'
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.image }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
 
-    - name: Upload Trivy scan results to GitHub Security
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
 
-  # Job 4: Deploy para Staging
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
@@ -225,41 +219,32 @@ jobs:
     environment: staging
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'latest'
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
 
-    - name: Configure kubectl
-      run: |
-        echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > ~/.kube/config
-        chmod 600 ~/.kube/config
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
 
-    - name: Deploy to staging
-      run: |
-        # Substituir imagem nos manifests
-        sed -i "s|priceguard/api:latest|${{ needs.build.outputs.image }}|g" k8s/deployment.yaml
-        
-        # Apply manifests
-        kubectl apply -f k8s/ -n priceguard-staging
-        
-        # Wait for rollout
-        kubectl rollout status deployment/priceguard-api -n priceguard-staging --timeout=600s
+      - name: Deploy to staging
+        run: |
+          sed -i "s|priceguard/api:latest|${{ needs.build.outputs.image }}|g" k8s/deployment.yaml
+          kubectl apply -f k8s/ -n priceguard-staging
+          kubectl rollout status deployment/priceguard-api -n priceguard-staging --timeout=600s
 
-    - name: Run smoke tests
-      run: |
-        # Aguardar serviço ficar disponível
-        kubectl wait --for=condition=ready pod -l app=priceguard-api -n priceguard-staging --timeout=300s
-        
-        # Executar testes básicos
-        STAGING_URL="https://staging-api.priceguard.io"
-        curl -f $STAGING_URL/health || exit 1
-        curl -f $STAGING_URL/api/v1/health || exit 1
+      - name: Run smoke tests
+        run: |
+          kubectl wait --for=condition=ready pod -l app=priceguard-api -n priceguard-staging --timeout=300s
+          STAGING_URL="https://staging-api.priceguard.io"
+          curl -f $STAGING_URL/health || exit 1
+          curl -f $STAGING_URL/api/v1/health || exit 1
 
-  # Job 5: Deploy para Produção
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -268,65 +253,48 @@ jobs:
     environment: production
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup kubectl
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'latest'
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
 
-    - name: Configure kubectl
-      run: |
-        echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > ~/.kube/config
-        chmod 600 ~/.kube/config
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
 
-    - name: Pre-deployment backup
-      run: |
-        # Backup da configuração atual
-        kubectl get deployment priceguard-api -n priceguard -o yaml > backup-deployment.yaml
-        
-        # Upload backup para S3/storage
-        # aws s3 cp backup-deployment.yaml s3://priceguard-backups/$(date +%Y%m%d-%H%M%S)/
+      - name: Pre-deployment backup
+        run: |
+          kubectl get deployment priceguard-api -n priceguard -o yaml > backup-deployment.yaml
 
-    - name: Deploy to production
-      run: |
-        # Substituir imagem nos manifests
-        sed -i "s|priceguard/api:latest|${{ needs.build.outputs.image }}|g" k8s/deployment.yaml
-        
-        # Apply manifests com estratégia rolling update
-        kubectl apply -f k8s/ -n priceguard
-        
-        # Wait for rollout com timeout maior
-        kubectl rollout status deployment/priceguard-api -n priceguard --timeout=900s
+      - name: Deploy to production
+        run: |
+          sed -i "s|priceguard/api:latest|${{ needs.build.outputs.image }}|g" k8s/deployment.yaml
+          kubectl apply -f k8s/ -n priceguard
+          kubectl rollout status deployment/priceguard-api -n priceguard --timeout=900s
 
-    - name: Post-deployment verification
-      run: |
-        # Verificar pods saudáveis
-        kubectl wait --for=condition=ready pod -l app=priceguard-api -n priceguard --timeout=300s
-        
-        # Testes de health check
-        PROD_URL="https://api.priceguard.io"
-        curl -f $PROD_URL/health || exit 1
-        curl -f $PROD_URL/api/v1/health || exit 1
-        
-        # Verificar métricas básicas
-        curl -f $PROD_URL/metrics || exit 1
+      - name: Post-deployment verification
+        run: |
+          kubectl wait --for=condition=ready pod -l app=priceguard-api -n priceguard --timeout=300s
+          PROD_URL="https://api.priceguard.io"
+          curl -f $PROD_URL/health || exit 1
+          curl -f $PROD_URL/api/v1/health || exit 1
+          curl -f $PROD_URL/metrics || exit 1
 
-    - name: Notify deployment success
-      if: success()
-      run: |
-        echo "✅ Production deployment successful!"
-        # Notificar Slack/Discord/etc sobre deploy bem-sucedido
+      - name: Notify deployment success
+        if: success()
+        run: echo "✅ Production deployment successful!"
 
-    - name: Rollback on failure
-      if: failure()
-      run: |
-        echo "❌ Production deployment failed! Rolling back..."
-        kubectl rollout undo deployment/priceguard-api -n priceguard
-        kubectl rollout status deployment/priceguard-api -n priceguard --timeout=300s
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "❌ Production deployment failed! Rolling back..."
+          kubectl rollout undo deployment/priceguard-api -n priceguard
+          kubectl rollout status deployment/priceguard-api -n priceguard --timeout=300s
 
-  # Job 6: Cleanup
   cleanup:
     name: Cleanup
     runs-on: ubuntu-latest
@@ -334,13 +302,10 @@ jobs:
     if: always()
 
     steps:
-    - name: Cleanup old images
-      run: |
-        # Manter apenas as últimas 10 imagens
-        # (implementar lógica de limpeza de registry)
-        echo "Cleanup completed"
+      - name: Cleanup old images
+        run: |
+          echo "Cleanup completed"
 
-  # Job 7: Performance Monitoring
   performance-monitoring:
     name: Performance Monitoring
     runs-on: ubuntu-latest
@@ -348,18 +313,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
-    - name: Run performance tests
-      run: |
-        # Executar testes de carga pós-deploy
-        echo "Running post-deployment performance tests..."
-        
-        # k6 load testing example
-        # k6 run --vus 100 --duration 5m performance-tests/load-test.js
+      - name: Run performance tests
+        run: echo "Running post-deployment performance tests..."
 
-    - name: Monitor metrics
-      run: |
-        # Verificar métricas de performance
-        echo "Monitoring production metrics..."
-        
-        # Verificar se métricas estão normais
-        # curl -s "http://prometheus:9090/api/v1/query?query=up{job='priceguard-api'}" | jq '.data.result[0].value[1]' | grep -q "1"
+      - name: Monitor metrics
+        run: echo "Monitoring production metrics..."
