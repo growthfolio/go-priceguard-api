@@ -315,7 +315,7 @@ func (m *MockRedisClient) Get(ctx context.Context, key string) *redis.StringCmd 
 
 func (m *MockRedisClient) TTL(ctx context.Context, key string) *redis.DurationCmd {
 	args := m.Called(ctx, key)
-	cmd := redis.NewDurationCmd(ctx)
+	cmd := redis.NewDurationCmd(ctx, 0)
 	if args.Get(0) != nil {
 		cmd.SetVal(args.Get(0).(time.Duration))
 	}
