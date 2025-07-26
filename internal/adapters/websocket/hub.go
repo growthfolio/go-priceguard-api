@@ -1,28 +1,36 @@
 package websocket
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/growthfolio/go-priceguard-api/internal/application/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/sirupsen/logrus"
 )
 
 // Hub manages WebSocket connections and broadcasting
+// AuthService defines the token validation behavior required by the hub
+type AuthService interface {
+	ValidateToken(ctx context.Context, accessToken string) (*entities.User, error)
+}
+
 type Hub struct {
 	clients     map[string]*Client     // Connected clients
 	rooms       map[string]*Room       // Chat rooms/channels
 	register    chan *Client           // Register requests from clients
 	unregister  chan *Client           // Unregister requests from clients
 	broadcast   chan *BroadcastMessage // Broadcast messages
-	authService *services.AuthService
+	authService AuthService
 	logger      *logrus.Logger
 	mutex       sync.RWMutex
+	stopChan    chan struct{}
+	wg          sync.WaitGroup
 }
 
 // Client represents a WebSocket client
@@ -75,7 +83,7 @@ var upgrader = websocket.Upgrader{
 }
 
 // NewHub creates a new WebSocket hub
-func NewHub(authService *services.AuthService, logger *logrus.Logger) *Hub {
+func NewHub(authService AuthService, logger *logrus.Logger) *Hub {
 	return &Hub{
 		clients:     make(map[string]*Client),
 		rooms:       make(map[string]*Room),
@@ -84,12 +92,14 @@ func NewHub(authService *services.AuthService, logger *logrus.Logger) *Hub {
 		broadcast:   make(chan *BroadcastMessage, 256),
 		authService: authService,
 		logger:      logger,
+		stopChan:    make(chan struct{}),
 	}
 }
 
 // Start starts the WebSocket hub
 func (h *Hub) Start() {
 	h.logger.Info("Starting WebSocket hub")
+	h.wg.Add(1)
 
 	for {
 		select {
@@ -101,6 +111,11 @@ func (h *Hub) Start() {
 
 		case message := <-h.broadcast:
 			h.broadcastToRoom(message)
+
+		case <-h.stopChan:
+			h.logger.Info("Stopping WebSocket hub")
+			h.wg.Done()
+			return
 		}
 	}
 }
@@ -326,4 +341,10 @@ func (h *Hub) GetRooms() map[string]int {
 	}
 
 	return rooms
+}
+
+// Stop gracefully stops the hub goroutine
+func (h *Hub) Stop() {
+	close(h.stopChan)
+	h.wg.Wait()
 }
