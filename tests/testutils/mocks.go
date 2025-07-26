@@ -4,8 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/google/uuid"
+	appservices "github.com/growthfolio/go-priceguard-api/internal/application/services"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/mock"
 )
@@ -231,29 +232,39 @@ type MockAlertWebSocketService struct {
 	mock.Mock
 }
 
-func (m *MockAlertWebSocketService) BroadcastAlert(alert *entities.Alert, result interface{}) error {
-	args := m.Called(alert, result)
+var _ appservices.AlertWebSocketService = (*MockAlertWebSocketService)(nil)
+
+func (m *MockAlertWebSocketService) BroadcastAlertTriggered(ctx context.Context, alert *entities.Alert, result *appservices.AlertEvaluationResult) error {
+	args := m.Called(ctx, alert, result)
 	return args.Error(0)
 }
 
-func (m *MockAlertWebSocketService) BroadcastNotification(notification *entities.Notification) error {
-	args := m.Called(notification)
+func (m *MockAlertWebSocketService) BroadcastNotificationUpdate(ctx context.Context, notification *entities.Notification) error {
+	args := m.Called(ctx, notification)
 	return args.Error(0)
 }
 
-func (m *MockAlertWebSocketService) Start() error {
-	args := m.Called()
+func (m *MockAlertWebSocketService) BroadcastCryptoDataUpdate(ctx context.Context, symbol string, data map[string]interface{}) error {
+	args := m.Called(ctx, symbol, data)
 	return args.Error(0)
 }
 
-func (m *MockAlertWebSocketService) Stop() error {
-	args := m.Called()
+func (m *MockAlertWebSocketService) BroadcastSystemAlert(ctx context.Context, alertType, title, message string, data map[string]interface{}) error {
+	args := m.Called(ctx, alertType, title, message, data)
 	return args.Error(0)
 }
 
-func (m *MockAlertWebSocketService) IsRunning() bool {
-	args := m.Called()
-	return args.Bool(0)
+func (m *MockAlertWebSocketService) NotifyAlertEvaluation(ctx context.Context, userID uuid.UUID, results []appservices.AlertEvaluationResult) error {
+	args := m.Called(ctx, userID, results)
+	return args.Error(0)
+}
+
+func (m *MockAlertWebSocketService) GetConnectedUsersStats(ctx context.Context) (map[string]interface{}, error) {
+	args := m.Called(ctx)
+	if args.Get(0) != nil {
+		return args.Get(0).(map[string]interface{}), args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 // MockRedisClient implements the RedisClientInterface for testing

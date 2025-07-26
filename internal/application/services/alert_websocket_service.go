@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/google/uuid"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,8 +17,20 @@ type WebSocketHub interface {
 	GetRooms() map[string]int
 }
 
-// AlertWebSocketService integrates alert system with WebSocket broadcasting
-type AlertWebSocketService struct {
+// AlertWebSocketService defines the methods required for broadcasting alert and
+// notification events over WebSocket. It is kept as an interface to simplify
+// testing of components that depend on WebSocket broadcasting.
+type AlertWebSocketService interface {
+	BroadcastAlertTriggered(ctx context.Context, alert *entities.Alert, result *AlertEvaluationResult) error
+	BroadcastNotificationUpdate(ctx context.Context, notification *entities.Notification) error
+	BroadcastCryptoDataUpdate(ctx context.Context, symbol string, data map[string]interface{}) error
+	BroadcastSystemAlert(ctx context.Context, alertType, title, message string, data map[string]interface{}) error
+	NotifyAlertEvaluation(ctx context.Context, userID uuid.UUID, results []AlertEvaluationResult) error
+	GetConnectedUsersStats(ctx context.Context) (map[string]interface{}, error)
+}
+
+// alertWebSocketService implements AlertWebSocketService using a WebSocket hub.
+type alertWebSocketService struct {
 	wsHub               WebSocketHub
 	notificationService *NotificationService
 	alertEngine         *AlertEngine
@@ -31,8 +43,8 @@ func NewAlertWebSocketService(
 	notificationService *NotificationService,
 	alertEngine *AlertEngine,
 	logger *logrus.Logger,
-) *AlertWebSocketService {
-	return &AlertWebSocketService{
+) AlertWebSocketService {
+	return &alertWebSocketService{
 		wsHub:               wsHub,
 		notificationService: notificationService,
 		alertEngine:         alertEngine,
@@ -41,7 +53,7 @@ func NewAlertWebSocketService(
 }
 
 // BroadcastAlertTriggered broadcasts alert triggered events to connected clients
-func (aws *AlertWebSocketService) BroadcastAlertTriggered(ctx context.Context, alert *entities.Alert, result *AlertEvaluationResult) error {
+func (aws *alertWebSocketService) BroadcastAlertTriggered(ctx context.Context, alert *entities.Alert, result *AlertEvaluationResult) error {
 	// Create broadcast data
 	data := map[string]interface{}{
 		"alert_id":       alert.ID,
@@ -69,7 +81,7 @@ func (aws *AlertWebSocketService) BroadcastAlertTriggered(ctx context.Context, a
 }
 
 // BroadcastNotificationUpdate broadcasts notification updates to connected clients
-func (aws *AlertWebSocketService) BroadcastNotificationUpdate(ctx context.Context, notification *entities.Notification) error {
+func (aws *alertWebSocketService) BroadcastNotificationUpdate(ctx context.Context, notification *entities.Notification) error {
 	// Create broadcast data
 	data := map[string]interface{}{
 		"notification_id":   notification.ID,
@@ -94,7 +106,7 @@ func (aws *AlertWebSocketService) BroadcastNotificationUpdate(ctx context.Contex
 }
 
 // BroadcastCryptoDataUpdate broadcasts crypto data updates to subscribers
-func (aws *AlertWebSocketService) BroadcastCryptoDataUpdate(ctx context.Context, symbol string, data map[string]interface{}) error {
+func (aws *alertWebSocketService) BroadcastCryptoDataUpdate(ctx context.Context, symbol string, data map[string]interface{}) error {
 	// Create symbol-specific room
 	symbolRoom := fmt.Sprintf("crypto:%s", symbol)
 
@@ -113,7 +125,7 @@ func (aws *AlertWebSocketService) BroadcastCryptoDataUpdate(ctx context.Context,
 }
 
 // BroadcastSystemAlert broadcasts system-wide alerts to all connected clients
-func (aws *AlertWebSocketService) BroadcastSystemAlert(ctx context.Context, alertType, title, message string, data map[string]interface{}) error {
+func (aws *alertWebSocketService) BroadcastSystemAlert(ctx context.Context, alertType, title, message string, data map[string]interface{}) error {
 	// Create broadcast data
 	broadcastData := map[string]interface{}{
 		"alert_type": alertType,
@@ -134,7 +146,7 @@ func (aws *AlertWebSocketService) BroadcastSystemAlert(ctx context.Context, aler
 }
 
 // NotifyAlertEvaluation sends real-time alert evaluation results
-func (aws *AlertWebSocketService) NotifyAlertEvaluation(ctx context.Context, userID uuid.UUID, results []AlertEvaluationResult) error {
+func (aws *alertWebSocketService) NotifyAlertEvaluation(ctx context.Context, userID uuid.UUID, results []AlertEvaluationResult) error {
 	if len(results) == 0 {
 		return nil
 	}
@@ -168,7 +180,7 @@ func (aws *AlertWebSocketService) NotifyAlertEvaluation(ctx context.Context, use
 }
 
 // GetConnectedUsersStats returns statistics about connected users
-func (aws *AlertWebSocketService) GetConnectedUsersStats(ctx context.Context) (map[string]interface{}, error) {
+func (aws *alertWebSocketService) GetConnectedUsersStats(ctx context.Context) (map[string]interface{}, error) {
 	stats := map[string]interface{}{
 		"total_connections": aws.wsHub.GetConnectedClients(),
 		"rooms":             aws.wsHub.GetRooms(),
