@@ -2,17 +2,16 @@ package websocket_test
 
 import (
 	"context"
-	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/growthfolio/go-priceguard-api/internal/adapters/websocket"
-	"github.com/growthfolio/go-priceguard-api/internal/application/services"
-	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
+	gws "github.com/gorilla/websocket"
+	ws "github.com/growthfolio/go-priceguard-api/internal/adapters/websocket"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -24,18 +23,18 @@ type MockAuthService struct {
 	mock.Mock
 }
 
-func (m *MockAuthService) ValidateJWT(tokenString string) (*services.Claims, error) {
+func (m *MockAuthService) ValidateToken(ctx context.Context, tokenString string) (*entities.User, error) {
 	args := m.Called(tokenString)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*services.Claims), args.Error(1)
+	return args.Get(0).(*entities.User), args.Error(1)
 }
 
 type WebSocketTestSuite struct {
 	suite.Suite
-	hub      *websocket.Hub
-	handler  *websocket.WebSocketHandler
+	hub      *ws.Hub
+	handler  *ws.WebSocketHandler
 	mockAuth *MockAuthService
 	logger   *logrus.Logger
 	ctx      context.Context
@@ -47,8 +46,14 @@ func (suite *WebSocketTestSuite) SetupTest() {
 	suite.logger.SetLevel(logrus.ErrorLevel) // Reduce noise in tests
 	suite.ctx = context.Background()
 
-	suite.hub = websocket.NewHub(suite.mockAuth, suite.logger)
-	suite.handler = websocket.NewWebSocketHandler(suite.hub, suite.logger)
+	suite.hub = ws.NewHub(suite.mockAuth, suite.logger)
+	suite.handler = ws.NewWebSocketHandler(
+		suite.hub,
+		nil,
+		nil,
+		nil,
+		suite.logger,
+	)
 
 	// Start the hub
 	go suite.hub.Start()
@@ -225,22 +230,24 @@ func TestWebSocketHandler_HandleConnection_NoAuth(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	hub := websocket.NewHub(mockAuth, logger)
-	handler := websocket.NewWebSocketHandler(hub, logger)
+	hub := ws.NewHub(mockAuth, logger)
+	handler := ws.NewWebSocketHandler(hub, nil, nil, nil, logger)
 
 	// Start hub
 	go hub.Start()
 	defer hub.Stop()
 
-	// Create test server
-	server := httptest.NewServer(http.HandlerFunc(handler.HandleConnection))
+	// Create test server using gin router
+	router := gin.New()
+	router.GET("/ws", handler.HandleConnection)
+	server := httptest.NewServer(router)
 	defer server.Close()
 
 	// Convert http://127.0.0.1 to ws://127.0.0.1
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws"
 
 	// Try to connect without token (should fail or be rejected)
-	_, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	_, _, err := gws.DefaultDialer.Dial(wsURL, nil)
 
 	// Connection should fail due to missing authentication
 	assert.Error(t, err)
@@ -251,25 +258,27 @@ func TestWebSocketHandler_HandleConnection_InvalidAuth(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	hub := websocket.NewHub(mockAuth, logger)
-	handler := websocket.NewWebSocketHandler(hub, logger)
+	hub := ws.NewHub(mockAuth, logger)
+	handler := ws.NewWebSocketHandler(hub, nil, nil, nil, logger)
 
 	// Start hub
 	go hub.Start()
 	defer hub.Stop()
 
 	// Mock invalid token validation
-	mockAuth.On("ValidateJWT", "invalid_token").Return((*services.Claims)(nil), assert.AnError)
+	mockAuth.On("ValidateToken", "invalid_token").Return((*entities.User)(nil), assert.AnError)
 
-	// Create test server
-	server := httptest.NewServer(http.HandlerFunc(handler.HandleConnection))
+	// Create test server using gin router
+	router := gin.New()
+	router.GET("/ws", handler.HandleConnection)
+	server := httptest.NewServer(router)
 	defer server.Close()
 
 	// Convert http://127.0.0.1 to ws://127.0.0.1
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/ws?token=invalid_token"
 
 	// Try to connect with invalid token
-	_, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	_, _, err := gws.DefaultDialer.Dial(wsURL, nil)
 
 	// Connection should fail due to invalid token
 	assert.Error(t, err)
@@ -282,11 +291,11 @@ func TestWebSocketWorker_StartStop(t *testing.T) {
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
-	hub := websocket.NewHub(mockAuth, logger)
-	handler := websocket.NewWebSocketHandler(hub, logger)
+	hub := ws.NewHub(mockAuth, logger)
+	handler := ws.NewWebSocketHandler(hub, nil, nil, nil, logger)
 
 	// Create worker with nil services for basic testing
-	worker := websocket.NewWorker(
+	worker := ws.NewWorker(
 		hub,
 		handler,
 		nil, // CryptoDataService
