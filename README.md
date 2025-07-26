@@ -70,7 +70,7 @@ make -f Makefile.dev health      # Check service health
 make -f Makefile.dev backup-db   # Database backup
 ```
 
-### � Database Recovery
+### 🗄️ Database Recovery
 
 If you encounter database issues or lost tables after Docker volume removal:
 
@@ -90,7 +90,7 @@ make migrate-up
 
 **📖 For detailed recovery procedures, see [Database Recovery Guide](./docs/DATABASE_RECOVERY_GUIDE.md)**
 
-### �📋 System Requirements
+### 📋 System Requirements
 
 - **Docker** 20.10+
 - **Docker Compose** 2.0+
