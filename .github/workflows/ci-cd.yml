@@ -136,18 +136,57 @@ jobs:
       - name: Debug - Pre-test environment
         run: |
           echo "🧪 Pre-test Environment Check:"
+          
+          echo "📋 Checking Makefile:"
+          if [ -f "Makefile" ]; then
+            echo "✅ Makefile exists"
+            echo "Available targets:"
+            grep "^[a-zA-Z0-9_-]*:" Makefile | head -10 || echo "Could not parse targets"
+          else
+            echo "❌ Makefile not found"
+          fi
+          
           echo "Database connection test:"
           PGPASSWORD=postgres psql -h localhost -U postgres -d priceguard_test -c "SELECT version();" || echo "❌ DB connection failed"
           echo "Redis connection test:"
           redis-cli -h localhost -p 6379 info server | head -5 || echo "❌ Redis connection failed"
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         run: |
           echo "🧪 Running unit tests with coverage..."
-          make test-unit-coverage || {
-            echo "❌ Unit tests failed"
-            exit 1
-          }
+          
+          # Check if Makefile exists and has the target
+          if [ -f "Makefile" ] && grep -q "test-unit-coverage:" Makefile; then
+            echo "📋 Using Makefile target: test-unit-coverage"
+            make test-unit-coverage || {
+              echo "❌ Unit tests failed"
+              exit 1
+            }
+          elif [ -f "Makefile" ] && grep -q "test-cover:" Makefile; then
+            echo "📋 Using Makefile target: test-cover"
+            make test-cover || {
+              echo "❌ Unit tests failed"
+              exit 1
+            }
+          else
+            echo "📋 Using direct Go commands"
+            
+            # Create coverage directory if it doesn't exist
+            mkdir -p coverage
+            
+            # Run tests with coverage
+            go test -v -race -short -coverprofile=coverage.out -covermode=atomic ./... || {
+              echo "❌ Unit tests failed"
+              exit 1
+            }
+            
+            # Generate HTML coverage report
+            go tool cover -html=coverage.out -o coverage.html
+            
+            # Show coverage summary
+            go tool cover -func=coverage.out | tail -1
+          fi
+          
           echo "✅ Unit tests completed"
         env:
           DB_HOST: localhost
@@ -174,13 +213,26 @@ jobs:
       - name: Run integration tests
         run: |
           echo "🔗 Running integration tests..."
-          make test-integration || {
-            echo "❌ Integration tests failed"
-            # Show recent logs for debugging
-            echo "Recent application logs:"
-            ls -la logs/ 2>/dev/null || echo "No logs directory found"
-            exit 1
-          }
+          
+          if [ -f "Makefile" ] && grep -q "test-integration:" Makefile; then
+            echo "📋 Using Makefile target: test-integration"
+            make test-integration || {
+              echo "❌ Integration tests failed"
+              ls -la logs/ 2>/dev/null || echo "No logs directory found"
+              exit 1
+            }
+          else
+            echo "📋 Using direct Go commands"
+            
+            # Run integration tests (assuming they have build tag)
+            go test -v -race -tags=integration ./... || {
+              echo "❌ Integration tests failed"
+              # Show any available logs
+              find . -name "*.log" -type f -exec echo "=== {} ===" \; -exec tail -20 {} \; 2>/dev/null || true
+              exit 1
+            }
+          fi
+          
           echo "✅ Integration tests completed"
         env:
           DB_HOST: localhost
@@ -195,10 +247,29 @@ jobs:
       - name: Run performance benchmarks
         run: |
           echo "⚡ Running performance benchmarks..."
-          make benchmark-all || {
-            echo "❌ Benchmarks failed"
-            exit 1
-          }
+          
+          if [ -f "Makefile" ] && grep -q "benchmark:" Makefile; then
+            echo "📋 Using Makefile target: benchmark"
+            make benchmark || {
+              echo "❌ Benchmarks failed"
+              exit 1
+            }
+          elif [ -f "Makefile" ] && grep -q "bench:" Makefile; then
+            echo "📋 Using Makefile target: bench"
+            make bench || {
+              echo "❌ Benchmarks failed"
+              exit 1
+            }
+          else
+            echo "📋 Using direct Go commands"
+            
+            # Run benchmarks
+            go test -v -bench=. -benchmem ./... || {
+              echo "❌ Benchmarks failed"
+              exit 1
+            }
+          fi
+          
           echo "✅ Benchmarks completed"
         env:
           DB_HOST: localhost
