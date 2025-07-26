@@ -74,7 +74,13 @@ jobs:
         with:
           args: '-fmt sarif -out gosec-results.sarif ./...'
 
+      - name: Debug SARIF file
+        run: |
+          echo "--- Gosec SARIF Preview ---"
+          head -n 20 gosec-results.sarif || echo "SARIF not generated"
+
       - name: Upload Gosec SARIF results
+        if: success() && hashFiles('gosec-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: gosec-results.sarif
@@ -136,7 +142,7 @@ jobs:
             coverage.out
             coverage.html
             reports/
-
+            
   build:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
