@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/growthfolio/go-priceguard-api/internal/domain/repositories"
-	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,7 +46,7 @@ type AlertEngine struct {
 	technicalIndicatorRepo    repositories.TechnicalIndicatorRepository
 	notificationRepo          repositories.NotificationRepository
 	technicalIndicatorService *TechnicalIndicatorService
-	webSocketService          *AlertWebSocketService
+	webSocketService          AlertWebSocketService
 	logger                    *logrus.Logger
 
 	// Alert throttling
@@ -80,7 +80,7 @@ func NewAlertEngine(
 }
 
 // SetWebSocketService sets the WebSocket service for broadcasting
-func (ae *AlertEngine) SetWebSocketService(webSocketService *AlertWebSocketService) {
+func (ae *AlertEngine) SetWebSocketService(webSocketService AlertWebSocketService) {
 	ae.webSocketService = webSocketService
 }
 
