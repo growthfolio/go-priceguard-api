@@ -5,24 +5,24 @@ import (
 	"testing"
 	"time"
 
-	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/google/uuid"
+	"github.com/growthfolio/go-priceguard-api/internal/domain/entities"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
-// AlertRepositoryTestSuite defines the test suite for alert repository
-type AlertRepositoryTestSuite struct {
+// AlertModelTestSuite defines basic model tests for alerts
+type AlertModelTestSuite struct {
 	suite.Suite
 	ctx context.Context
 }
 
-func (suite *AlertRepositoryTestSuite) SetupTest() {
+func (suite *AlertModelTestSuite) SetupTest() {
 	suite.ctx = context.Background()
 }
 
-func (suite *AlertRepositoryTestSuite) TestAlertCreation() {
+func (suite *AlertModelTestSuite) TestAlertCreation() {
 	userID := uuid.New()
 
 	alert := &entities.Alert{
@@ -52,7 +52,7 @@ func (suite *AlertRepositoryTestSuite) TestAlertCreation() {
 	assert.Nil(suite.T(), alert.TriggeredAt)
 }
 
-func (suite *AlertRepositoryTestSuite) TestAlertValidation() {
+func (suite *AlertModelTestSuite) TestAlertValidation() {
 	tests := []struct {
 		name    string
 		alert   entities.Alert
@@ -112,7 +112,7 @@ func (suite *AlertRepositoryTestSuite) TestAlertValidation() {
 	}
 }
 
-func (suite *AlertRepositoryTestSuite) TestAlertTimeframes() {
+func (suite *AlertModelTestSuite) TestAlertTimeframes() {
 	validTimeframes := []string{"1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"}
 
 	for _, timeframe := range validTimeframes {
@@ -132,7 +132,7 @@ func (suite *AlertRepositoryTestSuite) TestAlertTimeframes() {
 	}
 }
 
-func (suite *AlertRepositoryTestSuite) TestAlertTypes() {
+func (suite *AlertModelTestSuite) TestAlertTypes() {
 	validTypes := []struct {
 		alertType     string
 		conditionType string
@@ -168,8 +168,8 @@ func (suite *AlertRepositoryTestSuite) TestAlertTypes() {
 	}
 }
 
-func TestAlertRepositoryTestSuite(t *testing.T) {
-	suite.Run(t, new(AlertRepositoryTestSuite))
+func TestAlertModelTestSuite(t *testing.T) {
+	suite.Run(t, new(AlertModelTestSuite))
 }
 
 // NotificationRepositoryTestSuite defines the test suite for notification repository
