@@ -1,14 +1,24 @@
-# 🛡️ PriceGuard API - Advanced Cryptocurrency Alert System
+# 🛡️ PriceGuard API - Sistema de Alertas Cryptocurrency
 
-[![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org)
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://docker.com)
-[![Coverage](https://img.shields.io/badge/Coverage-85%25-green.svg)]()
-[![Status](https://img.shields.io/badge/Status-100%25%20Complete-brightgreen.svg)]()
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Production Ready](https://img.shields.io/badge/Production-Ready-success.svg)]()
-[![Development Ready](https://img.shields.io/badge/Dev%20Environment-Ready-success.svg)]()
+## 🎯 Objetivo de Aprendizado
+Projeto backend avançado desenvolvido em **Go** para estudar **Clean Architecture**, **WebSockets**, **microserviços** e **sistemas distribuídos**. Implementa alertas de preços de criptomoedas em tempo real com arquitetura enterprise-grade.
 
-Robust backend system developed in Go for real-time cryptocurrency price alerts, following Clean Architecture principles and production-ready.
+## 🛠️ Tecnologias Utilizadas
+- **Linguagem:** Go 1.24+
+- **Framework:** Gin (HTTP), Gorilla WebSocket
+- **Banco de Dados:** PostgreSQL, Redis
+- **Autenticação:** Google OAuth 2.0, JWT
+- **APIs Externas:** Binance API, SendGrid
+- **DevOps:** Docker, Kubernetes, GitHub Actions
+- **Monitoramento:** Prometheus, Grafana
+- **Arquitetura:** Clean Architecture, SOLID
+- **Conceitos estudados:**
+  - Clean Architecture e DDD
+  - WebSockets e comunicação real-time
+  - Microserviços e sistemas distribuídos
+  - OAuth 2.0 e segurança enterprise
+  - Performance e otimização
+  - Testes automatizados (85%+ coverage)
 
 ## 🚀 Quick Start - Development Environment
 
@@ -435,11 +445,10 @@ make deploy-production
 
 ## 📞 Support
 
-### Contacts
+### Contatos
 - **Email**: contato.dev.macedo@gmail.com
-- **GitHub**: [PriceGuard API Repository](https://github.com/growthfolio/go-priceguard-api)
-- **Issues**: [Report bugs](https://github.com/growthfolio/go-priceguard-api/issues)
-- **LinkedIn**: [Felipe Macedo](https://linkedin.com/in/felipemacedo1)
+- **GitHub**: [FelipeMacedo](https://github.com/felipemacedo1)
+- **LinkedIn**: [felipemacedo1](https://linkedin.com/in/felipemacedo1)
 
 ### Additional Documentation
   🔧 Implementing
@@ -455,9 +464,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Developed by Felipe Macedo**
+**Desenvolvido por:** Felipe Macedo  
+**Contato:** contato.dev.macedo@gmail.com  
+**GitHub:** [FelipeMacedo](https://github.com/felipemacedo1)  
+**LinkedIn:** [felipemacedo1](https://linkedin.com/in/felipemacedo1)
 
-*Enterprise-grade backend system, production-ready and globally scalable.*
+> 💡 **Reflexão:** Este projeto representou um marco no meu aprendizado de Go e arquiteturas enterprise. A implementação de Clean Architecture, WebSockets e sistemas distribuídos consolidou conhecimentos avançados de backend development.
 
 ## 🏆 Project Highlights
 
